@@ -142,3 +142,12 @@ export const useCases = [
     image: "/images/fabrikasi.webp",
   },
 ];
+
+export const socialLinks = [
+  { name: "YouTube", href: "https://www.youtube.com/@mkmetalindo" },
+  { name: "Facebook", href: "https://facebook.com/MKMetalindo" },
+  { name: "Instagram", href: "https://instagram.com/mkmetalindo" },
+  { name: "TikTok", href: "https://tiktok.com/@mk.metalindo" },
+  { name: "Twitter", href: "https://twitter.com/mkmetalindo" },
+  { name: "LinkedIn", href: "https://linkedin.com/company/mk-metalindo" },
+];
