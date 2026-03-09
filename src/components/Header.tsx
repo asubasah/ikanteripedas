@@ -22,7 +22,7 @@ const SocialIcon = ({ name }: { name: string }) => {
           alt="TikTok"
           width={16}
           height={16}
-          className="h-4 w-4 object-contain brightness-0 invert"
+          className="h-4 w-4 object-contain"
         />
       );
     case "Twitter":
