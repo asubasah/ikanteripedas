@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { services } from "@/data/homepage";
 
 export function ServicesSection() {
@@ -17,17 +18,28 @@ export function ServicesSection() {
         </p>
       </div>
 
-      <div className="mt-16 grid gap-6 md:grid-cols-6 lg:grid-cols-12 auto-rows-[220px]">
+      <div className="mt-16 grid gap-6 md:grid-cols-6 lg:grid-cols-12 auto-rows-[280px]">
         {services.map((service, index) => {
-          const isLarge = index === 0 || index === 3;
-          const colSpan = isLarge ? "md:col-span-3 lg:col-span-6" : "md:col-span-3 lg:col-span-3";
+          const isLarge = index === 0 || index === 1;
+          const colSpan = isLarge ? "md:col-span-3 lg:col-span-6" : "md:col-span-3 lg:col-span-4";
 
           return (
             <article
               key={service.title}
-              className={`${colSpan} group relative overflow-hidden rounded-[32px] border-machined bg-charcoal-800 p-8 flex flex-col justify-end metallic-shine transition-all duration-500 hover:border-white/20 hover:-translate-y-1 shadow-xl`}
+              className={`${colSpan} group relative overflow-hidden rounded-[32px] border-machined bg-charcoal-800 p-8 flex flex-col justify-end transition-all duration-500 hover:border-white/20 hover:-translate-y-1 shadow-xl`}
             >
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
+              {/* Background Image with Overlays */}
+              <div className="absolute inset-0 z-0 transition-transform duration-700 group-hover:scale-110">
+                <Image
+                  src={(service as any).image}
+                  alt={service.title}
+                  fill
+                  className="object-cover opacity-30 grayscale transition-all duration-500 group-hover:opacity-50 group-hover:grayscale-0"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/60 to-transparent"></div>
+              </div>
+
+              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-40 group-hover:scale-110 transition-transform z-10">
                 <div className="h-16 w-16 rounded-full border-2 border-dashed border-white"></div>
               </div>
 

@@ -80,7 +80,11 @@ export function Footer() {
             </li>
             <li className="flex flex-col">
               <span className="text-[10px] uppercase text-white/20 mb-1">Email Support</span>
-              <span className="text-text-light">order@mkmetal-indo.com</span>
+              <span className="text-text-light">project@mkmetalindo.co.id</span>
+            </li>
+            <li className="flex flex-col">
+              <span className="text-[10px] uppercase text-white/20 mb-1">Website</span>
+              <span className="text-text-light">www.mkmetalindo.co.id</span>
             </li>
           </ul>
         </div>
@@ -102,7 +106,7 @@ export function Footer() {
 
       <div className="shell mx-auto mt-24 border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">
-          © {new Date().getFullYear()} MK Metal Indo. Precision Engineering.
+          © {new Date().getFullYear()} MK Metal Indo. Precision Engineering. <span className="ml-2 border-l border-white/10 pl-2">Powered by The Doctor</span>
         </p>
         <div className="flex gap-6 text-[10px] font-bold uppercase tracking-widest text-white/20">
           <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>

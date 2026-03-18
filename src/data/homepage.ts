@@ -39,26 +39,31 @@ export const services = [
     title: "Laser Cutting Plate",
     description:
       "Potong plat dengan hasil rapi, presisi, dan konsisten untuk kebutuhan produksi, part custom, dan pekerjaan subkon.",
+    image: "/images/MKmetalindo_laser_cutting2.jpeg",
   },
   {
     title: "Laser Cutting Pipa",
     description:
       "Solusi cutting pipa untuk kebutuhan yang butuh hasil lebih presisi, lebih efisien, dan siap lanjut ke proses berikutnya.",
+    image: "/images/MKmetalindo_laser_cutting8.jpeg",
   },
   {
     title: "Bending CNC",
     description:
       "Pengerjaan tekuk presisi sesuai gambar dan kebutuhan produksi supaya hasil lebih pas dan minim koreksi ulang.",
+    image: "/images/MKmetalindo_bending_tekuk_cnc1.jpeg",
   },
   {
     title: "Shearing",
     description:
       "Potong material dengan hasil lurus, cepat, dan bersih untuk mendukung proses kerja yang lebih rapi dan efisien.",
+    image: "/images/MKmetalindo_laser_cutting4.jpeg",
   },
   {
     title: "Fabrikasi & Pengerjaan Lanjutan",
     description:
       "Kalau kebutuhan tidak berhenti di cutting atau bending, kami bantu pengerjaan fabrikasi lanjutan sesuai requirement proyek.",
+    image: "/images/fabrikasi.webp",
   },
 ];
 
