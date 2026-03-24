@@ -74,15 +74,16 @@ function resolveJidToPhone(rawJid) {
 // ====================================================================
 async function startBaileys() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    const { version, isLatest } = await fetchLatestBaileysVersion();
-    console.log(`Using WA v${version.join('.')}, isLatest: ${isLatest}`);
-    
     sock = makeWASocket({
-        version,
+        version: [2, 3000, 1015901307], // Hardcode version for stability
         auth: state,
-        logger: pino({ level: 'info' }), // Changed from silent to info
+        logger: pino({ level: 'info' }),
         printQRInTerminal: true,
-        browser: ["Ubuntu", "Chrome", "20.0.04"], // More standard browser string
+        browser: ["Ubuntu", "Chrome", "20.0.04"],
+        defaultQueryTimeoutMs: 60000, // Increase timeout
+        connectTimeoutMs: 60000,
+        keepAliveIntervalMs: 10000,
+        generateHighQualityQR: true,
     });
 
     sock.ev.on('creds.update', saveCreds);
