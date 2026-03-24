@@ -80,9 +80,9 @@ async function startBaileys() {
     sock = makeWASocket({
         version,
         auth: state,
-        logger: pino({ level: 'silent' }),
+        logger: pino({ level: 'info' }), // Changed from silent to info
         printQRInTerminal: true,
-        browser: Browsers.macOS('Desktop'),
+        browser: ["Ubuntu", "Chrome", "20.0.04"], // More standard browser string
     });
 
     sock.ev.on('creds.update', saveCreds);
