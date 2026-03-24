@@ -19,8 +19,8 @@ export async function POST() {
     );
 
     // Send OTP via WAHA / Baileys Custom Adapter
-    const WAHA_URL = 'http://127.0.0.1:3017';
-    const WAHA_API_KEY = 'no-auth';
+    const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3017';
+    const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
     const targetJid = salesPIC.startsWith('0') ? '62' + salesPIC.substring(1) + '@c.us' : salesPIC + '@c.us';
 
     const text = `*KODE LOGIN DASHBOARD MK METAL INDO*\n\nKode OTP Anda adalah: *${otp}*\n\nBerlaku selama 5 menit. Jangan bagikan kode ini kepada siapapun. 🔒`;
