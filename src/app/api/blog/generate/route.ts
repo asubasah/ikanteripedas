@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || ''; // Usually provided in .env
-const OPENROUTER_MODEL = 'google/gemini-2.5-flash'; // High context, intelligent model
+const OPENROUTER_MODEL = process.env.AI_MODEL || 'google/gemini-2.0-flash-001'; // Use env or fallback to stable model
 
 export async function POST(req: Request) {
   // Validate Authentication
