@@ -1,5 +1,5 @@
 @import "tailwindcss";
-
+@plugin "@tailwindcss/typography";
 @theme {
   --color-charcoal: #0f0f11;
   --color-charcoal-800: #16161a;

@@ -9,10 +9,11 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "MK Metal Indo",
-  description:
-    "Jasa laser cutting, bending CNC, shearing, dan fabrikasi untuk bengkel & produksi.",
+  title: "MK Metal Indo - Jasa Laser Cutting, Bending CNC & Fabrikasi Sidoarjo",
+  description: "Bengkel spesialis laser cutting plat & pipa, bending CNC, shearing, dan fabrikasi metal di Sidoarjo. Presisi, cepat, dan profesional.",
 };
+
+import ChatWidgetWrapper from "@/components/ChatWidgetWrapper";
 
 export default function RootLayout({
   children,
@@ -21,8 +22,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
-      <body className={`${manrope.variable} bg-charcoal text-text-light antialiased`}>
+      <body className={`${manrope.variable} antialiased font-manrope bg-charcoal text-text-light`}>
         {children}
+        <ChatWidgetWrapper />
       </body>
     </html>
   );

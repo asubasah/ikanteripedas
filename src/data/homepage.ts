@@ -1,8 +1,9 @@
 export const navLinks = [
-  { label: "Layanan", href: "#layanan" },
-  { label: "Kenapa Kami", href: "#alasan" },
-  { label: "Alur Kerja", href: "#alur" },
-  { label: "Contoh Kebutuhan", href: "#usecase" },
+  { label: "Layanan", href: "/#layanan" },
+  { label: "Kenapa Kami", href: "/#alasan" },
+  { label: "Alur Kerja", href: "/#alur" },
+  { label: "Contoh Kebutuhan", href: "/#usecase" },
+  { label: "Blog", href: "/blog" },
 ];
 
 export const trustChips = [
