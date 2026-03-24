@@ -1,4 +1,8 @@
 require('dotenv').config();
+const dns = require('dns');
+// Force IPv4 because WhatsApp often blocks or drops IPv6 connections from Data Centers (VPS)
+dns.setDefaultResultOrder('ipv4first');
+
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadMediaMessage, fetchLatestBaileysVersion, Browsers, jidNormalizedUser } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const express = require('express');
