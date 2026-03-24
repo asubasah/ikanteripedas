@@ -69,115 +69,113 @@ function resolveJidToPhone(rawJid) {
     return null;
 }
 
-// ====================================================================
-// BAILEYS ENGINE
-// ====================================================================
-async function startBaileys() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    sock = makeWASocket({
-        version: [2, 3000, 1015901307], // Hardcode version for stability
-        auth: state,
-        logger: pino({ level: 'info' }),
-        printQRInTerminal: true,
-        browser: ["Ubuntu", "Chrome", "20.0.04"],
-        defaultQueryTimeoutMs: 60000, // Increase timeout
-        connectTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000,
-        generateHighQualityQR: true,
-    });
+    // ====================================================================
+    // BAILEYS ENGINE
+    // ====================================================================
+    async function startBaileys() {
+        const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+        const { Boom } = require('@hapi/boom');
 
-    sock.ev.on('creds.update', saveCreds);
+        sock = makeWASocket({
+            auth: state,
+            printQRInTerminal: true, // QR akan muncul di terminal
+            browser: ["My VPS Bot", "Chrome", "1.0.0"],
+            logger: pino({ level: 'info' }), // Keep info for monitoring
+        });
 
-    // 🔥 Capture ALL contact sync events -> build LID map
-    sock.ev.on('contacts.upsert', (contacts) => {
-        // 🔍 DEBUG: Dump first 5 raw contact objects to file for inspection
-        const debugFile = path.resolve(__dirname, 'debug_contacts.json');
-        const sample = contacts.slice(0, 10).map(c => ({ ...c }));
-        fs.writeFileSync(debugFile, JSON.stringify(sample, null, 2));
-        console.log(`📇 contacts.upsert: ${contacts.length} contacts received. Sample dumped to debug_contacts.json`);
-        
-        let mapped = 0;
-        for (const c of contacts) {
-            const keys = Object.keys(c);
-            // Try ALL possible field combinations
-            // v7 might use: id, lid, verifiedName, name, notify, imgUrl, status
-            const phoneJid = keys.find(k => {
-                const val = c[k];
-                return typeof val === 'string' && val.includes('@s.whatsapp.net');
-            });
-            const lidJid = keys.find(k => {
-                const val = c[k];
-                return typeof val === 'string' && val.includes('@lid');
-            });
+        sock.ev.on('creds.update', saveCreds);
+
+        // 🔥 Capture ALL contact sync events -> build LID map
+        sock.ev.on('contacts.upsert', (contacts) => {
+            // 🔍 DEBUG: Dump first 5 raw contact objects to file for inspection
+            const debugFile = path.resolve(__dirname, 'debug_contacts.json');
+            const sample = contacts.slice(0, 10).map(c => ({ ...c }));
+            fs.writeFileSync(debugFile, JSON.stringify(sample, null, 2));
+            console.log(`📇 contacts.upsert: ${contacts.length} contacts received. Sample dumped to debug_contacts.json`);
             
-            if (phoneJid && lidJid) {
-                lidPhoneMap[c[lidJid]] = c[phoneJid];
-                mapped++;
+            let mapped = 0;
+            for (const c of contacts) {
+                const keys = Object.keys(c);
+                // Try ALL possible field combinations
+                // v7 might use: id, lid, verifiedName, name, notify, imgUrl, status
+                const phoneJid = keys.find(k => {
+                    const val = c[k];
+                    return typeof val === 'string' && val.includes('@s.whatsapp.net');
+                });
+                const lidJid = keys.find(k => {
+                    const val = c[k];
+                    return typeof val === 'string' && val.includes('@lid');
+                });
+                
+                if (phoneJid && lidJid) {
+                    lidPhoneMap[c[lidJid]] = c[phoneJid];
+                    mapped++;
+                }
+                // Classic approach
+                if (c.lid && c.id?.includes('@s.whatsapp.net')) {
+                    lidPhoneMap[c.lid] = c.id;
+                    mapped++;
+                }
             }
-            // Classic approach
-            if (c.lid && c.id?.includes('@s.whatsapp.net')) {
-                lidPhoneMap[c.lid] = c.id;
-                mapped++;
+            if (mapped > 0) {
+                console.log(`📇 ${mapped} LID->Phone mappings captured!`);
+                saveLidMap();
+            } else {
+                console.log(`⚠️ No LID->Phone mappings found in this batch. Check debug_contacts.json`);
             }
-        }
-        if (mapped > 0) {
-            console.log(`📇 ${mapped} LID->Phone mappings captured!`);
-            saveLidMap();
-        } else {
-            console.log(`⚠️ No LID->Phone mappings found in this batch. Check debug_contacts.json`);
-        }
-    });
+        });
 
-    sock.ev.on('contacts.update', (contacts) => {
-        let mapped = 0;
-        for (const c of contacts) {
-            if (c.lid && c.id?.includes('@s.whatsapp.net')) {
-                lidPhoneMap[c.lid] = c.id;
-                mapped++;
-            }
-        }
-        if (mapped > 0) { console.log(`📇 contacts.update: ${mapped} mappings`); saveLidMap(); }
-    });
-
-    sock.ev.on('messaging-history.set', (data) => {
-        const { contacts, chats } = data;
-        let mapped = 0;
-        if (contacts) {
+        sock.ev.on('contacts.update', (contacts) => {
+            let mapped = 0;
             for (const c of contacts) {
                 if (c.lid && c.id?.includes('@s.whatsapp.net')) {
                     lidPhoneMap[c.lid] = c.id;
                     mapped++;
                 }
             }
-        }
-        if (chats) {
-            for (const chat of chats) {
-                // Some chats have the phone JID in their id
-                if (chat.id?.includes('@s.whatsapp.net') && chat.lid) {
-                    lidPhoneMap[chat.lid] = chat.id;
-                    mapped++;
+            if (mapped > 0) { console.log(`📇 contacts.update: ${mapped} mappings`); saveLidMap(); }
+        });
+
+        sock.ev.on('messaging-history.set', (data) => {
+            const { contacts, chats } = data;
+            let mapped = 0;
+            if (contacts) {
+                for (const c of contacts) {
+                    if (c.lid && c.id?.includes('@s.whatsapp.net')) {
+                        lidPhoneMap[c.lid] = c.id;
+                        mapped++;
+                    }
                 }
             }
-        }
-        if (mapped > 0) { console.log(`📜 history sync: ${mapped} LID mappings`); saveLidMap(); }
-        console.log(`📜 History sync complete. Total LID mappings: ${Object.keys(lidPhoneMap).length}`);
-    });
+            if (chats) {
+                for (const chat of chats) {
+                    // Some chats have the phone JID in their id
+                    if (chat.id?.includes('@s.whatsapp.net') && chat.lid) {
+                        lidPhoneMap[chat.lid] = chat.id;
+                        mapped++;
+                    }
+                }
+            }
+            if (mapped > 0) { console.log(`📜 history sync: ${mapped} LID mappings`); saveLidMap(); }
+            console.log(`📜 History sync complete. Total LID mappings: ${Object.keys(lidPhoneMap).length}`);
+        });
 
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        if (qr) {
-            console.log("\nScan QR Code:\n");
-            qrcode.generate(qr, {small: true});
-        }
-        if (connection === 'close') {
-            const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('Connection closed, reconnecting:', shouldReconnect);
-            if(shouldReconnect) startBaileys();
-        } else if (connection === 'open') {
-            console.log('✅ WA Connection Opened!');
-            console.log(`📇 LID->Phone map has ${Object.keys(lidPhoneMap).length} entries`);
-        }
-    });
+        sock.ev.on('connection.update', (update) => {
+            const { connection, lastDisconnect, qr } = update;
+            if (qr) {
+                console.log("\nScan QR Code:\n");
+                qrcode.generate(qr, {small: true});
+            }
+            if (connection === 'close') {
+                const shouldReconnect = (lastDisconnect.error instanceof Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+                console.log('❌ Koneksi terputus karena:', lastDisconnect.error?.message || lastDisconnect.error);
+                console.log('🔄 mencoba hubungkan kembali:', shouldReconnect);
+                if(shouldReconnect) startBaileys();
+            } else if (connection === 'open') {
+                console.log('✅ WA Connection Opened!');
+                console.log(`📇 LID->Phone map has ${Object.keys(lidPhoneMap).length} entries`);
+            }
+        });
 
     sock.ev.on('messages.upsert', async (m) => {
         if (!m.messages || m.messages.length === 0) return;
