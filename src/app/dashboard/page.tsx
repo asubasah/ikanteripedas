@@ -203,7 +203,7 @@ export default function DashboardPage() {
       <div className="h-screen bg-charcoal flex flex-col items-center justify-center p-6 text-text-light" style={{ fontFamily: 'var(--font-manrope)' }}>
         <div className="w-full max-w-sm bg-charcoal-800 border border-border-industrial p-8 rounded-xl shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-maroon to-transparent opacity-50"></div>
-          
+
           <div className="text-center mb-8">
             <h1 className="text-xl font-bold text-white tracking-tight mb-2">MK Metalindo</h1>
             <p className="text-xs text-text-muted">Secure Console Access</p>
@@ -218,7 +218,7 @@ export default function DashboardPage() {
           {otpStep === 'request' ? (
             <div className="flex flex-col gap-4 text-center">
               <p className="text-xs text-text-muted mb-2">Sistem akan mengirimkan 6-digit kode OTP ke nomor WhatsApp Admin yang terdaftar.</p>
-              <button 
+              <button
                 onClick={requestOtp}
                 disabled={authLoading}
                 className="w-full bg-maroon text-white font-bold py-3 text-sm rounded-lg hover:bg-red-700 transition-all disabled:opacity-50 flex justify-center items-center"
@@ -228,9 +228,9 @@ export default function DashboardPage() {
             </div>
           ) : (
             <form onSubmit={verifyOtp} className="flex flex-col gap-4 text-center">
-              <p className="text-xs text-text-muted mb-2">Masukkan 6-digit kode yang dikirim ke <br/><strong className="text-amber">{maskedTarget}</strong></p>
-              <input 
-                type="text" 
+              <p className="text-xs text-text-muted mb-2">Masukkan 6-digit kode yang dikirim ke <br /><strong className="text-amber">{maskedTarget}</strong></p>
+              <input
+                type="text"
                 maxLength={6}
                 value={otpCode}
                 onChange={e => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
@@ -239,7 +239,7 @@ export default function DashboardPage() {
                 autoFocus
                 required
               />
-              <button 
+              <button
                 type="submit"
                 disabled={authLoading || otpCode.length !== 6}
                 className="w-full bg-maroon text-white font-bold py-3 text-sm rounded-lg hover:bg-red-700 transition-all disabled:opacity-50 flex justify-center items-center mt-2"
@@ -264,21 +264,21 @@ export default function DashboardPage() {
         {/* Top Bar */}
         <header className="h-14 bg-charcoal-800 border-b border-border-industrial flex items-center justify-between px-6 shrink-0 relative z-10">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setIsSettingsOpen(true)}
               className="w-8 h-8 bg-charcoal border border-border-industrial hover:bg-white/5 hover:border-maroon rounded-lg flex items-center justify-center text-sm transition-all text-white/50 hover:text-white"
               title="Pengaturan Sistem"
             >
               ⚙️
             </button>
-            <Link 
+            <Link
               href="/dashboard/files"
               className="w-8 h-8 bg-charcoal border border-border-industrial hover:bg-amber/10 hover:border-amber rounded-lg flex items-center justify-center transition-all text-white/50 hover:text-amber"
               title="Manajemen File Media"
             >
               📂
             </Link>
-            <Link 
+            <Link
               href="/dashboard/blog"
               className="w-8 h-8 bg-charcoal border border-border-industrial hover:bg-green-500/10 hover:border-green-500/50 rounded-lg flex items-center justify-center transition-all text-white/50 hover:text-green-400"
               title="AI SEO Blog Manager"
@@ -321,9 +321,8 @@ export default function DashboardPage() {
                   <button
                     key={lead.id}
                     onClick={() => handleSelectLead(lead)}
-                    className={`w-full text-left p-4 border-b border-white/[0.03] hover:bg-white/[0.03] transition-colors ${
-                      selectedLead?.id === lead.id ? 'bg-maroon/10 border-l-2 border-l-maroon' : ''
-                    }`}
+                    className={`w-full text-left p-4 border-b border-white/[0.03] hover:bg-white/[0.03] transition-colors ${selectedLead?.id === lead.id ? 'bg-maroon/10 border-l-2 border-l-maroon' : ''
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0">
@@ -404,23 +403,21 @@ export default function DashboardPage() {
                     messages.map((msg) => (
                       <div key={msg.id} className={`flex ${msg.direction === 'incoming' ? 'justify-start' : 'justify-end'}`}>
                         <div className={`max-w-[65%] group`}>
-                          <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                            msg.direction === 'incoming'
+                          <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.direction === 'incoming'
                               ? 'bg-charcoal-800 border border-border-industrial text-text-light rounded-bl-sm'
                               : msg.is_ai_response
                                 ? 'bg-maroon/20 border border-maroon/30 text-text-light rounded-br-sm'
                                 : 'bg-white/5 border border-white/10 text-text-light rounded-br-sm'
-                          }`}>
-                            {/* Sender label */}
-                            <p className={`text-[10px] font-bold mb-1 ${
-                              msg.direction === 'incoming' ? 'text-amber' : msg.is_ai_response ? 'text-maroon-600' : 'text-text-muted'
                             }`}>
+                            {/* Sender label */}
+                            <p className={`text-[10px] font-bold mb-1 ${msg.direction === 'incoming' ? 'text-amber' : msg.is_ai_response ? 'text-maroon-600' : 'text-text-muted'
+                              }`}>
                               {msg.direction === 'incoming' ? msg.sender_name : msg.is_ai_response ? '🤖 AI Agent' : 'System'}
                             </p>
                             <div className="whitespace-pre-wrap">
                               {msg.message_text.includes('http') ? (
-                                msg.message_text.split(/(https?:\/\/[^\s]+)/).map((part, i) => 
-                                  part.match(/^https?:\/\//) 
+                                msg.message_text.split(/(https?:\/\/[^\s]+)/).map((part, i) =>
+                                  part.match(/^https?:\/\//)
                                     ? (
                                       <div key={i} className="my-2 p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-3 group/file transition-all hover:bg-white/10">
                                         <div className="flex items-center gap-3 overflow-hidden">
@@ -434,10 +431,10 @@ export default function DashboardPage() {
                                             <p className="text-[9px] text-white/40 uppercase tracking-tighter">Uploaded File</p>
                                           </div>
                                         </div>
-                                        <a 
-                                          href={part} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer" 
+                                        <a
+                                          href={part}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
                                           className="bg-amber hover:bg-amber-600 text-charcoal px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-xl flex items-center gap-1.5 shrink-0"
                                         >
                                           <span>Open</span>
@@ -484,14 +481,14 @@ export default function DashboardPage() {
           <div className="bg-charcoal-800 border border-border-industrial rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-border-industrial flex justify-between items-center">
               <h2 className="text-white font-bold text-lg">⚙️ Pengaturan Sistem</h2>
-              <button 
+              <button
                 onClick={() => setIsSettingsOpen(false)}
                 className="text-white/40 hover:text-white"
               >
                 ✕
               </button>
             </div>
-            
+
             <form onSubmit={handleSaveSettings} className="p-6">
               <div className="space-y-4">
                 <div>
@@ -499,7 +496,7 @@ export default function DashboardPage() {
                     Nomor WhatsApp Sales Handoff
                   </label>
                   <p className="text-[10px] text-white/40 mb-3 leading-relaxed">
-                    Nomor WhatsApp PIC (Misal: Luluk) yang akan menerima notifikasi penerusan file DXF/PDF/Gambar dari sistem otomatis, 
+                    Nomor WhatsApp PIC (Misal: Luluk) yang akan menerima notifikasi penerusan file DXF/PDF/Gambar dari sistem otomatis,
                     atau jika AI tidak bisa menjawab pertanyaan teknis mendalam.
                   </p>
                   <input

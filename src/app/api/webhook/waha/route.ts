@@ -142,7 +142,7 @@ export async function POST(req: Request) {
 
       // 🚨 Fix 31.6s timeout: Force IPv4 loopback because Node 18+ resolves localhost to ::1
       const WAHA_URL = 'http://127.0.0.1:3017'; 
-      const WAHA_API_KEY = 'mkm_crm_waha_secure_key';
+      const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
       const CONTACT_SALES = dynamicContactWaha;
 
       // --- 2.5: INTERCEPT MEDIA / FILES TO SAVE TOKENS ---
