@@ -1,15 +1,23 @@
-import { workflowSteps } from "@/data/homepage";
+'use client';
+
+import { homepageData } from "@/data/homepage";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/data/translations";
 
 export function WorkflowSection() {
+  const { lang } = useLanguage();
+  const t = translations[lang].workflow;
+  const workflowSteps = homepageData[lang].workflow;
+
   return (
     <section id="alur" className="shell mx-auto px-6 py-24 relative">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-24 bg-gradient-to-b from-transparent to-maroon-600/30"></div>
 
       <div className="text-center mb-20">
-        <span className="mono text-[10px] uppercase tracking-[0.5em] text-maroon-600 font-bold mb-4 block">Operation Protocol</span>
-        <h2 className="text-3xl font-extrabold text-white sm:text-5xl tracking-tight">Proses Praktis, <span className="text-text-muted">Hasil Maksimal.</span></h2>
+        <span className="mono text-[10px] uppercase tracking-[0.5em] text-maroon-600 font-bold mb-4 block">{t.badge}</span>
+        <h2 className="text-3xl font-extrabold text-white sm:text-5xl tracking-tight">{t.title.split(',')[0]}, <span className="text-text-muted">{t.title.split(',')[1]}</span></h2>
         <p className="mt-6 text-lg text-text-muted max-w-2xl mx-auto italic border-l-2 border-white/5 pl-6">
-          "Kami menjaga alur tetap sederhana supaya Anda bisa fokus pada produksi selanjutnya."
+          "{t.quote}"
         </p>
       </div>
 
@@ -35,7 +43,7 @@ export function WorkflowSection() {
       <div className="mt-16 flex items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-6 max-w-fit mx-auto shadow-inner">
         <div className="h-2 w-2 rounded-full bg-amber animate-pulse"></div>
         <p className="text-sm text-text-muted font-medium italic">
-          Belum punya detail lengkap? Kirim kebutuhan dasar dulu, tim kami bantu arahin proses paling pas.
+          {t.footer_help}
         </p>
       </div>
     </section>

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const { title, theme, human_insert, uploaded_images = [] } = await req.json();
 
     const systemPrompt = `
-You are an expert SEO Content Writer for MK Metal Indo, an industrial laser cutting and sheet metal fabrication company in Sidoarjo, Indonesia.
+You are an expert SEO Content Writer for MK Metalindo, an industrial laser cutting and sheet metal fabrication company in Sidoarjo, Indonesia.
 Your task is to write a highly SEO-optimized article in Indonesian based on the following attributes:
 
 TITLE: ${title}
@@ -31,7 +31,7 @@ ${human_insert || '(No specific human text provided. Write naturally)'}
 3. IMAGES: The user has uploaded the following images: ${uploaded_images.length > 0 ? uploaded_images.join(', ') : 'None'}. 
 You MUST weave these exact image URLs into the article content as HTML tags with descriptive SEO alt text. For example: <img src="/uploads/filename.jpg" alt="SEO Optimized Alt" />
 If no images were uploaded, do not include any image tags.
-4. FORMATTING & CTA: Return the content as fully formatted HTML (<h1>, <h2>, <p>, <ul>, <strong>). End with a professional Call to Action to contact MK Metal Indo via WhatsApp.
+4. FORMATTING & CTA: Return the content as fully formatted HTML (<h1>, <h2>, <p>, <ul>, <strong>). End with a professional Call to Action to contact MK Metalindo via WhatsApp.
 5. JSON OUTPUT: You MUST return ONLY a valid JSON object with the following structure. Do NOT wrap it in markdown block quotes.
 {
   "slug": "generated-seo-friendly-url-slug-kebab-case",

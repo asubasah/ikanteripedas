@@ -1,6 +1,14 @@
-import { benefits } from "@/data/homepage";
+'use client';
+
+import { homepageData } from "@/data/homepage";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/data/translations";
 
 export function ReasonsSection() {
+  const { lang } = useLanguage();
+  const t = translations[lang].reasons;
+  const benefits = homepageData[lang].benefits;
+
   return (
     <section
       id="alasan"
@@ -8,22 +16,22 @@ export function ReasonsSection() {
     >
       <div className="relative">
         <div className="absolute -left-12 -top-12 h-64 w-64 rounded-full bg-maroon-600/5 blur-[100px]"></div>
-        <span className="mono text-[10px] uppercase tracking-[0.4em] text-amber font-bold mb-4 block">Engineered for Reliability</span>
+        <span className="mono text-[10px] uppercase tracking-[0.4em] text-amber font-bold mb-4 block">{t.badge}</span>
         <h2 className="text-3xl font-extrabold text-white sm:text-5xl tracking-tight leading-tight">
-          Partner yang Bantu <br /><span className="text-maroon-600">Kerjaan Cepat Jalan.</span>
+          {t.subtitle.split(' ').slice(0, 3).join(' ')} <br /><span className="text-maroon-600">{t.subtitle.split(' ').slice(3).join(' ')}.</span>
         </h2>
         <p className="mt-8 text-lg text-text-muted leading-relaxed">
-          Kami paham bahwa yang dibutuhkan bukan cuma tempat potong atau tekuk, tapi partner kerja yang bisa bantu proses tetap bergerak, hasil tetap rapi, dan komunikasi tetap jelas.
+          {t.desc}
         </p>
 
         <div className="mt-10 grid grid-cols-2 gap-8 border-t border-white/5 pt-10">
           <div>
             <p className="mono text-2xl font-bold text-white">99%</p>
-            <p className="text-[10px] uppercase tracking-widest text-text-muted mt-1">Akurasi Presisi</p>
+            <p className="text-[10px] uppercase tracking-widest text-text-muted mt-1">{t.stat_accuracy}</p>
           </div>
           <div>
             <p className="mono text-2xl font-bold text-white">24h</p>
-            <p className="text-[10px] uppercase tracking-widest text-text-muted mt-1">Lead Time Cepat</p>
+            <p className="text-[10px] uppercase tracking-widest text-text-muted mt-1">{t.stat_leadtime}</p>
           </div>
         </div>
       </div>

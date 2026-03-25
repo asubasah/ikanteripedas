@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { navLinks, socialLinks } from "@/data/homepage";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/data/translations";
 
 const whatsappLink = "https://wa.me/628113195800";
 
@@ -36,6 +38,8 @@ const SocialIcon = ({ name }: { name: string }) => {
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const { lang, setLang } = useLanguage();
+  const t = translations[lang].nav;
 
   return (
     <header className="sticky top-0 z-50 w-full">
@@ -48,6 +52,22 @@ export function Header() {
             Sidoarjo • WA 0811 3195 800
           </div>
           <div className="flex items-center gap-3 ml-auto">
+            {/* Language Switcher */}
+            <div className="flex items-center bg-white/10 rounded-full p-0.5 border border-white/20 mr-2">
+              <button 
+                onClick={() => setLang('id')}
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-full transition-all ${lang === 'id' ? 'bg-amber text-charcoal' : 'text-white/60'}`}
+              >
+                ID
+              </button>
+              <button 
+                onClick={() => setLang('jv')}
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-full transition-all ${lang === 'jv' ? 'bg-amber text-charcoal' : 'text-white/60'}`}
+              >
+                JV
+              </button>
+            </div>
+
             {socialLinks.map((social) => (
               <a
                 key={social.name}
@@ -65,12 +85,12 @@ export function Header() {
       </div>
       <div className="border-b border-white/5 bg-charcoal-800/80 backdrop-blur-xl text-white">
         <div className="shell flex items-center justify-between py-4">
-          <Link href="#hero" className="group no-underline">
+          <Link href="/" className="group no-underline">
             <div className="flex items-center gap-3">
               <div className="relative h-16 w-16 shrink-0 flex items-center justify-center bg-white rounded-xl p-2 shadow-md">
                 <Image
                   src="/images/logo/logo_mkmetalindo_hires.png"
-                  alt="MK Metal Indo Logo"
+                  alt="MK Metalindo Logo"
                   width={56}
                   height={56}
                   className="h-full w-full object-contain group-hover:scale-110 transition-transform duration-300"
@@ -79,7 +99,7 @@ export function Header() {
               </div>
               <div className="leading-tight">
                 <div className="flex items-center gap-2">
-                  <p className="text-lg font-bold tracking-tight text-white m-0">MK Metal Indo</p>
+                  <p className="text-lg font-bold tracking-tight text-white m-0">MK Metalindo</p>
                   <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500 border border-emerald-500/20">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     ONLINE
@@ -90,18 +110,19 @@ export function Header() {
             </div>
           </Link>
           <nav className="hidden items-center gap-8 text-sm font-semibold text-text-muted lg:flex">
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="transition hover:text-white hover:translate-y-[-1px] no-underline text-text-muted">
-                {link.label}
-              </Link>
-            ))}
+            <Link href="/#layanan" className="transition hover:text-white hover:translate-y-[-1px] no-underline text-text-muted">{t.layanan}</Link>
+            <Link href="/#alasan" className="transition hover:text-white hover:translate-y-[-1px] no-underline text-text-muted">{t.kenapa}</Link>
+            <Link href="/#alur" className="transition hover:text-white hover:translate-y-[-1px] no-underline text-text-muted">{t.alur}</Link>
+            <Link href="/#usecase" className="transition hover:text-white hover:translate-y-[-1px] no-underline text-text-muted">{t.portofolio}</Link>
+            <Link href="/blog" className="transition hover:text-white hover:translate-y-[-1px] no-underline text-text-muted">{t.blog}</Link>
+            
             <a
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
               className="metallic-shine rounded-full bg-gradient-to-r from-amber to-amber-strong px-6 py-2.5 text-sm font-bold text-charcoal shadow-xl shadow-amber/20 hover:scale-105 transition-transform no-underline text-charcoal"
             >
-              Chat WhatsApp
+              {t.chat}
             </a>
           </nav>
           <button

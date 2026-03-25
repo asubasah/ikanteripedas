@@ -77,7 +77,7 @@ export async function POST(req: Request) {
         : phoneNumber + '@c.us';
 
     const customerWaitText = `Halo Bapak/Ibu *${userName}*,\n\n` +
-      `Terima kasih! Kami telah menerima file *${file.name}* yang Bapak/Ibu kirimkan melalui Web Chat MK Metal Indo.\n\n` +
+      `Terima kasih! Kami telah menerima file *${file.name}* yang Bapak/Ibu kirimkan melalui Web Chat MK Metalindo.\n\n` +
       `Mohon balas pesan WhatsApp ini dengan ketik *OK* atau *KONFIRMASI* untuk memastikan nomor ini aktif dan tim kami bisa mengirimkan hasil estimasi harganya ke sini.\n\n` +
       `Terima kasih. 🙏`;
 

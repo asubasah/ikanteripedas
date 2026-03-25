@@ -1,20 +1,28 @@
+'use client';
+
 import Image from "next/image";
-import { services } from "@/data/homepage";
+import { homepageData } from "@/data/homepage";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/data/translations";
 
 export function ServicesSection() {
+  const { lang } = useLanguage();
+  const t = translations[lang].services;
+  const services = homepageData[lang].services;
+
   return (
     <section id="layanan" className="shell mx-auto px-6 py-20">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <span className="mono text-[10px] uppercase tracking-[0.4em] text-maroon-600 font-bold border-l-2 border-maroon-600 pl-4 mb-4 block">
-            Core Expertise
+            {t.badge}
           </span>
           <h2 className="text-3xl font-extrabold text-white sm:text-5xl tracking-tight leading-tight">
-            Layanan Fabrikasi Metal <br /><span className="text-text-muted">Presisi & Berstandar Industri.</span>
+            {t.subtitle.split(' ').slice(0, 4).join(' ')} <br /><span className="text-text-muted">{t.subtitle.split(' ').slice(4).join(' ')}</span>
           </h2>
         </div>
         <p className="text-lg text-text-muted lg:max-w-md leading-relaxed">
-          Partner pengerjaan yang siap bantu saat pekerjaan harus cepat jalan tanpa kompromi pada kualitas.
+          {t.desc}
         </p>
       </div>
 

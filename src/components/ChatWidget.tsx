@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/data/translations';
 
 type ChatStep = 'idle' | 'register' | 'chatting';
 
@@ -10,6 +12,9 @@ interface Message {
 }
 
 export default function ChatWidget() {
+  const { lang } = useLanguage();
+  const t = translations[lang].chat;
+  
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<ChatStep>('idle');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -49,7 +54,7 @@ export default function ChatWidget() {
     setSessionId(sid);
     setStep('chatting');
     setMessages([{
-      text: `Halo ${nama.trim()}! 👋 Ada yang bisa kami bantu seputar pengerjaan metal? Silakan tanyakan apa saja.`,
+      text: t.bot_welcome.replace('{name}', nama.trim()),
       sender: 'bot'
     }]);
   };
@@ -80,7 +85,7 @@ export default function ChatWidget() {
         setMessages(prev => [...prev, { text: data.reply, sender: 'bot' }]);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { text: "Mohon maaf, ada gangguan koneksi. Silakan coba lagi.", sender: 'bot' }]);
+      setMessages(prev => [...prev, { text: t.error_conn, sender: 'bot' }]);
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +96,7 @@ export default function ChatWidget() {
     
     // 📂 Large File Policy: Guidance to Email if > 20MB
     if (file.size > 20 * 1024 * 1024) {
-      alert(`Waduh, file "${file.name}" ukurannya terlalu besar (>20MB) untuk Web Chat.\n\nMohon Bapak/Ibu kirimkan file tersebut via email ke: order@mkmetalindo.co.id agar tim Engineering kami bisa mengeceknya dengan lebih teliti. Terima kasih! 🙏`);
+      alert(`${t.error_file_size}\n\norder@mkmetalindo.co.id`);
       return;
     }
 
@@ -112,12 +117,12 @@ export default function ChatWidget() {
 
       const data = await response.json();
       if (data.success) {
-        setMessages(prev => [...prev, { text: `File berhasil terkirim! Tim kami akan segera menghubungi untuk proses estimasi. Mohon konfirmasi apakah nomor WhatsApp Anda (${hp}) sudah benar? Jika ingin ganti, silakan ketik nomor baru Anda di bawah.`, sender: 'bot' }]);
+        setMessages(prev => [...prev, { text: t.file_success.replace('{hp}', hp), sender: 'bot' }]);
       } else {
         throw new Error(data.error);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { text: "Gagal mengirim file. Silakan coba lagi atau kirim via WhatsApp.", sender: 'bot' }]);
+      setMessages(prev => [...prev, { text: t.file_fail, sender: 'bot' }]);
     } finally {
       setIsLoading(false);
       // Reset input file
@@ -138,9 +143,9 @@ export default function ChatWidget() {
                 <span className="text-lg">⚙️</span>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white leading-none">MK Metal Indo</h3>
+                <h3 className="text-sm font-bold text-white leading-none">MK Metalindo</h3>
                 <span className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em]">
-                  {step === 'register' ? 'Registrasi' : 'Tim Kami Siap Membantu'}
+                  {step === 'register' ? (lang === 'id' ? 'Registrasi' : 'Pendaftaran') : t.header_status}
                 </span>
               </div>
             </div>
@@ -155,40 +160,40 @@ export default function ChatWidget() {
           {step === 'register' && (
             <div className="flex-1 flex flex-col justify-center px-6">
               <div className="text-center mb-6">
-                <p className="text-white font-bold text-lg mb-1">Selamat Datang! 👋</p>
-                <p className="text-text-muted text-xs">Isi data singkat supaya kami bisa bantu lebih baik.</p>
+                <p className="text-white font-bold text-lg mb-1">{t.reg_title}</p>
+                <p className="text-text-muted text-xs">{t.reg_subtitle}</p>
               </div>
               <form onSubmit={handleRegister} className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">Nama Lengkap <span className="text-maroon-600">*</span></label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">{t.label_name} <span className="text-maroon-600">*</span></label>
                   <input
                     type="text"
                     value={nama}
                     onChange={(e) => setNama(e.target.value)}
-                    placeholder="Masukkan nama Anda"
+                    placeholder={t.placeholder_name}
                     className="w-full bg-charcoal border border-border-industrial text-white text-sm rounded-lg px-4 py-3 focus:outline-none focus:border-maroon transition-all placeholder:text-white/20"
                     required
                     autoFocus
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">No. HP / WhatsApp <span className="text-maroon-600">*</span></label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">{t.label_phone} <span className="text-maroon-600">*</span></label>
                   <input
                     type="tel"
                     value={hp}
                     onChange={(e) => setHp(e.target.value)}
-                    placeholder="0811 xxxx xxxx"
+                    placeholder={t.placeholder_phone}
                     className="w-full bg-charcoal border border-border-industrial text-white text-sm rounded-lg px-4 py-3 focus:outline-none focus:border-maroon transition-all placeholder:text-white/20"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">Perusahaan <span className="text-white/20">(opsional)</span></label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">{t.label_company} <span className="text-white/20">{t.label_optional}</span></label>
                   <input
                     type="text"
                     value={perusahaan}
                     onChange={(e) => setPerusahaan(e.target.value)}
-                    placeholder="Nama perusahaan / perorangan"
+                    placeholder={t.placeholder_company}
                     className="w-full bg-charcoal border border-border-industrial text-white text-sm rounded-lg px-4 py-3 focus:outline-none focus:border-maroon transition-all placeholder:text-white/20"
                   />
                 </div>
@@ -196,10 +201,10 @@ export default function ChatWidget() {
                   type="submit"
                   className="w-full bg-maroon text-white font-bold text-sm py-3 rounded-lg hover:bg-maroon-600 transition-all active:scale-[0.98] shadow-lg shadow-maroon/20 mt-1"
                 >
-                  Mulai Chat →
+                  {t.btn_start}
                 </button>
               </form>
-              <p className="text-center text-[10px] text-white/20 mt-3">Data Anda aman & hanya untuk keperluan follow-up.</p>
+              <p className="text-center text-[10px] text-white/20 mt-3">{t.footer_note}</p>
             </div>
           )}
 
@@ -262,7 +267,7 @@ export default function ChatWidget() {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Tulis pesan..."
+                    placeholder={t.placeholder_msg}
                     className="flex-1 bg-charcoal border border-border-industrial text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-maroon transition-all placeholder:text-white/20"
                     autoFocus
                   />
@@ -292,13 +297,19 @@ export default function ChatWidget() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         ) : (
-          <>
+          <div className="relative flex items-center justify-center w-full h-full">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber rounded-full animate-ping" />
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber rounded-full border-2 border-charcoal" />
-          </>
+            
+            {/* Subtle "Tanya MK" floating badge */}
+            <div className="absolute -top-10 -right-2 bg-white text-maroon-600 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg border border-maroon-100 whitespace-nowrap hidden md:block" style={{ animation: 'gentleFloat 3s ease-in-out infinite' }}>
+              {t.tooltip}
+              <div className="absolute -bottom-1 right-6 w-2 h-2 bg-white border-r border-b border-maroon-100 transform rotate-45"></div>
+            </div>
+          </div>
         )}
       </button>
 
@@ -306,6 +317,10 @@ export default function ChatWidget() {
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes gentleFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
         }
       `}</style>
     </div>

@@ -11,17 +11,21 @@ const getFaqData = (salesContact: string) => {
   else if (hours >= 19 || hours < 4) timeStr = "Malam";
 
   return [
-    { keywords: ['pagi', 'siang', 'sore', 'malam', 'halo', 'hai', 'hi', 'assalam', 'permisi', 'p', 'bot', 'min'], response: `Selamat ${timeStr}! Terima kasih sudah menghubungi *MK Metal Indo* 🏭\n\nSebelum kami bantu, boleh kami tahu ini dengan siapa dan dari perusahaan apa? 🙏` },
+    { keywords: ['pagi', 'siang', 'sore', 'malam', 'halo', 'hai', 'hi', 'assalam', 'permisi', 'p', 'bot', 'min'], response: `Selamat ${timeStr}! Terima kasih sudah menghubungi *MK Metalindo* 🏭\n\nSebelum kami bantu, boleh kami tahu ini dengan siapa dan dari perusahaan apa? 🙏` },
     { keywords: ['kirim', 'file', 'gambar', 'dxf', 'pdf', 'lampiran', 'upload', 'foto'], response: "Silakan langsung kirimkan file (DXF, PDF, atau Foto Plat) dengan meng-klik **Ikon Klip Kertas (Paperclip)** di bagian bawah chat ini untuk segera kami estimasi." },
     { keywords: ['besar', 'ratusan', 'mb', 'gb', 'kapasitas', 'limit', 'email', 'dxf'], response: "Untuk file teknis berukuran **besar (di atas 20MB)**, silakan kirimkan via email ke **order@mkmetalindo.co.id** agar kualitas file engineering (DXF/PDF) tetap terjaga dengan baik dan tidak terkompresi oleh sistem chat. Terima kasih." },
     { keywords: ['lokasi', 'alamat', 'dimana', 'maps'], response: "Workshop kami di Jl. Tambak Sawah No.6B, Waru, Sidoarjo, Jawa Timur 61253. Silakan mampir kapan saja di jam kerja ya." },
-    { keywords: ['kontak', 'wa', 'whatsapp', 'telp', 'hubungi', 'telepon'], response: `Untuk penjualan, silakan WA ke ${salesContact} atau telp (031) 9969 4300 di jam 08:00 - 16:00. Untuk teknis sales engineer di 08113185800.` },
+    { keywords: ['kontak', 'wa', 'whatsapp', 'telp', 'hubungi', 'telepon'], response: `Untuk penjualan, silakan WA ke ${salesContact} atau telp (031) 9969 4300 di jam 08:00 - 16:00. Untuk teknis sales engineer di 08113195800.` },
     { keywords: ['jam', 'buka', 'operasional', 'kerja'], response: "Workshop kami buka Senin–Sabtu, jam 08.00–16.00 WIB." },
-    { keywords: ['jasa', 'layanan', 'bisa cutting', 'laser', 'bending', 'shearing', 'fabrikasi', 'pipa', 'plat', 'potong'], response: "Selamat ${timeStr}! Terima kasih sudah menghubungi *MK Metal Indo* 🏭\n\nKami melayani Jasa Laser Cutting (Plat & Pipa), Bending CNC, Shearing, dan Fabrikasi untuk material Besi, Stainless, Aluminium, dan Mild Steel.\n\nBoleh kami tahu ini dengan siapa dan dari perusahaan apa? 🙏" }
+    { keywords: ['jasa', 'layanan', 'bisa cutting', 'laser', 'bending', 'shearing', 'fabrikasi', 'pipa', 'plat', 'potong'], response: "Selamat ${timeStr}! Terima kasih sudah menghubungi *MK Metalindo* 🏭\n\nKami melayani Jasa Laser Cutting (Plat & Pipa), Bending CNC, Shearing, dan Fabrikasi untuk material Besi, Stainless, Aluminium, dan Mild Steel.\n\nBoleh kami tahu ini dengan siapa dan dari perusahaan apa? 🙏" }
   ];
 };
 
-const getSystemPrompt = (salesContact: string, customerName: string, currentTime: string) => `Kamu adalah asisten penjualan MK Metal Indo, perusahaan jasa laser cutting, bending CNC, shearing, dan fabrikasi metal di Sidoarjo.
+const getSystemPrompt = (salesContact: string, customerName: string, currentTime: string) => `Kamu adalah asisten penjualan CV Multi Kreasi Metalindo (selalu sebut/tulis sebagai MK Metalindo), perusahaan jasa laser cutting, bending CNC, shearing, dan fabrikasi metal.
+DILARANG KERAS mengeja nama perusahaan sebagai "MK Metal Indo", "MK Metel Indo", atau ejaan salah lainnya. Selalu gunakan "MK Metalindo".
+Karakter & Bahasa:
+- Jika customer menggunakan Bahasa Jawa (Suroboyoan/Sidoarjoan), balaslah dengan Bahasa Jawa yang sopan namun akrab (Madya/Ngoko Alus).
+- Jadilah asisten yang informatif, teknis namun ramah.
 Waktu asli sistem (WIB) saat ini: ${currentTime}. Customer yang kamu layani bernama ${customerName}.
 
 Panduan Panggilan & Salam:
@@ -30,7 +34,7 @@ Panduan Panggilan & Salam:
 
 Panduan Minta Nama Customer (PENTING):
 - Jika nama customer "${customerName}" terlihat BUKAN nama orang asli (misalnya: "Customer WA", nama brand/toko, singkatan aneh, atau nama akun media sosial), maka DI PESAN PERTAMA kamu WAJIB menanyakan nama asli mereka terlebih dahulu.
-- Contoh: "Selamat ${currentTime}! Terima kasih sudah menghubungi MK Metal Indo. Mohon maaf, boleh kami tahu ini dengan Bapak/Ibu siapa? \uD83D\uDE4F"
+- Contoh: "Selamat ${currentTime}! Terima kasih sudah menghubungi MK Metalindo. Mohon maaf, boleh kami tahu ini dengan Bapak/Ibu siapa? \uD83D\uDE4F"
 - Setelah customer memberikan namanya, baru lanjutkan membantu pertanyaan mereka.
 - Jika customer sudah menyebutkan namanya di chat sebelumnya (cek histori), JANGAN tanya lagi.
 
@@ -40,10 +44,10 @@ Panduan Menangani Lampiran File:
 
 Panduan Komunikasi:
 - Jawab dengan ramah, profesional, dan to-the-point dalam Bahasa Indonesia yang baik.
-- Jangan sebut dirimu AI, kamu adalah tim MK Metal Indo.
+- Jangan sebut dirimu AI, kamu adalah tim MK Metalindo.
 - Jika customer ingin mengirim file/gambar/DXF/PDF, arahkan untuk meng-klik **IKON KLIP KERTAS (Paperclip)** di bagian bawah kolom chat web ini.
 - Fokus membantu layanan kami (Laser Cutting, Bending, Shearing, Fabrikasi).
-- Jika customer tanya teknis mendalam atau ingin deal, berikan kontak Sales Office: ${salesContact} (WA/Telp) atau arahkan ke 08113185800.
+- Jika customer tanya teknis mendalam atau ingin deal, berikan kontak Sales Office: ${salesContact} (WA/Telp) atau arahkan ke 08113195800.
 
 Informasi Perusahaan:
 - Workshop: Jl. Tambak Sawah No.6B, Waru, Sidoarjo.
@@ -170,7 +174,7 @@ export async function POST(req: Request) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
             'HTTP-Referer': 'http://localhost:3000', // Optional: your site URL
-            'X-Title': 'MK Metal Indo Web Chat' // Optional: your site name
+            'X-Title': 'MK Metalindo Web Chat' // Optional: your site name
           },
           body: JSON.stringify({
           model: process.env.AI_MODEL || "google/gemini-2.0-flash-001",
@@ -211,14 +215,14 @@ export async function POST(req: Request) {
           responseText = "Terima kasih atas pertanyaannya. Untuk detail lebih lanjut, tim kami bisa bantu langsung via WhatsApp di 0811 3195 800, atau kalau ada gambar teknis bisa kirimkan ke sana juga.";
         }
       } catch {
-        responseText = "Terima kasih sudah menghubungi MK Metal Indo. Untuk respon lebih cepat, silakan hubungi kami di WhatsApp 0811 3195 800.";
+        responseText = "Terima kasih sudah menghubungi MK Metalindo. Untuk respon lebih cepat, silakan hubungi kami di WhatsApp 0811 3195 800.";
       }
     }
 
     // 5. Record bot response
     await query(
       `INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) 
-       VALUES ($1, 'MK Metal Indo', $2, 'outgoing', $3, $4)`,
+       VALUES ($1, 'MK Metalindo', $2, 'outgoing', $3, $4)`,
       [leadId, responseText, isAiResponse, sessionId]
     );
 

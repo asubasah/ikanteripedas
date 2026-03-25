@@ -13,18 +13,24 @@ const getFaqData = (salesContact: string) => {
   else if (hours >= 19 || hours < 4) timeStr = "Malam";
 
   return [
-    { keywords: ['pagi', 'siang', 'sore', 'malam', 'halo', 'hai', 'hi', 'assalam', 'permisi', 'p', 'bot', 'min'], response: `Selamat ${timeStr}! Terima kasih sudah menghubungi *MK Metal Indo* 🏭\n\nSebelum kami bantu, boleh kami tahu ini dengan siapa dan dari perusahaan apa? 🙏` },
+    { keywords: ['pagi', 'siang', 'sore', 'malam', 'halo', 'hai', 'hi', 'assalam', 'permisi', 'p', 'bot', 'min'], response: `Selamat ${timeStr}! Terima kasih sudah menghubungi *MK Metalindo* 🏭\n\nSebelum kami bantu, boleh kami tahu ini dengan siapa dan dari perusahaan apa? 🙏` },
     { keywords: ['kirim', 'file', 'gambar', 'dxf', 'pdf', 'lampiran', 'upload', 'foto'], response: "Silakan langsung lampirkan file (DXF, PDF, atau Foto) di chat WhatsApp ini melalui menu **Lampiran/Attachment** agar segera kami estimasi." },
     { keywords: ['besar', 'ratusan', 'mb', 'gb', 'kapasitas', 'limit', 'email'], response: "Untuk file teknis berukuran **besar (di atas 20MB)**, silakan kirimkan via email ke **order@mkmetalindo.co.id** agar kualitas file engineering (DXF/PDF) tetap terjaga dengan baik dan tidak terkompresi oleh sistem chat. Terima kasih." },
     { keywords: ['lokasi', 'alamat', 'dimana', 'maps'], response: "Workshop kami di Jl. Tambak Sawah No.6B, Waru, Sidoarjo, Jawa Timur 61253. Silakan mampir kapan saja di jam kerja." },
-    { keywords: ['kontak', 'wa', 'whatsapp', 'telp', 'hubungi', 'telepon'], response: `Untuk penjualan, silakan WA ke ${salesContact} atau telp (031) 9969 4300 di jam 08:00 - 16:00. Untuk teknis sales engineer di 08113185800.` },
+    { keywords: ['kontak', 'wa', 'whatsapp', 'telp', 'hubungi', 'telepon'], response: `Untuk penjualan, silakan WA ke ${salesContact} atau telp (031) 9969 4300 di jam 08:00 - 16:00. Untuk teknis sales engineer di 08113195800.` },
     { keywords: ['jam', 'buka', 'operasional', 'kerja'], response: "Workshop kami buka Senin–Sabtu, jam 08.00–16.00 WIB." },
-    { keywords: ['jasa', 'layanan', 'bisa cutting', 'laser', 'bending', 'shearing', 'fabrikasi', 'pipa', 'plat', 'potong'], response: "Selamat ${timeStr}! Terima kasih sudah menghubungi *MK Metal Indo* 🏭\n\nKami melayani Jasa Laser Cutting (Plat & Pipa), Bending CNC, Shearing, dan Fabrikasi untuk material Besi, Stainless, Aluminium, dan Mild Steel.\n\nBoleh kami tahu ini dengan siapa dan dari perusahaan apa? 🙏" }
+    { keywords: ['jasa', 'layanan', 'bisa cutting', 'laser', 'bending', 'shearing', 'fabrikasi', 'pipa', 'plat', 'potong'], response: "Selamat ${timeStr}! Terima kasih sudah menghubungi *MK Metalindo* 🏭\n\nKami melayani Jasa Laser Cutting (Plat & Pipa), Bending CNC, Shearing, dan Fabrikasi untuk material Besi, Stainless, Aluminium, dan Mild Steel.\n\nBoleh kami tahu ini dengan siapa dan dari perusahaan apa? 🙏" }
   ];
 };
 
-const getSystemPrompt = (salesContact: string, customerName: string, currentTime: string) => `Kamu adalah asisten penjualan MK Metal Indo, perusahaan jasa laser cutting, bending CNC, shearing, dan fabrikasi metal di Sidoarjo.
+const getSystemPrompt = (salesContact: string, customerName: string, currentTime: string) => `Kamu adalah asisten penjualan CV Multi Kreasi Metalindo (selalu sebut/tulis sebagai MK Metalindo), perusahaan jasa laser cutting, bending CNC, shearing, dan fabrikasi metal di Sidoarjo.
 Waktu asli sistem (WIB) saat ini: ${currentTime}. Customer yang kamu layani bernama ${customerName}.
+
+DILARANG KERAS mengeja nama perusahaan sebagai "MK Metal Indo", "MK Metel Indo", atau ejaan salah lainnya. Selalu gunakan "MK Metalindo".
+
+Karakter & Bahasa:
+- Jika customer menggunakan Bahasa Jawa (Suroboyoan/Sidoarjoan), balaslah dengan Bahasa Jawa yang sopan namun akrab (Madya/Ngoko Alus).
+- Jadilah asisten yang informatif, teknis namun ramah.
 
 Panduan Panggilan & Salam:
 - Gunakan salam pembuka sesuai waktu ASLI sistem (${currentTime}) HANYA pada pesan pertama atau jika customer yang menyapa duluan. JANGAN mengulang salam di setiap balasan lanjutan. Jadilah natural.
@@ -32,7 +38,7 @@ Panduan Panggilan & Salam:
 
 Panduan Minta Nama Customer (PENTING):
 - Jika nama customer "${customerName}" terlihat BUKAN nama orang asli (misalnya: "Customer WA", nama brand/toko, singkatan aneh, atau nama akun media sosial), maka DI PESAN PERTAMA kamu WAJIB menanyakan nama asli mereka terlebih dahulu.
-- Contoh: "Selamat ${currentTime}! Terima kasih sudah menghubungi MK Metal Indo. Mohon maaf, boleh kami tahu ini dengan Bapak/Ibu siapa? 🙏"
+- Contoh: "Selamat ${currentTime}! Terima kasih sudah menghubungi MK Metalindo. Mohon maaf, boleh kami tahu ini dengan Bapak/Ibu siapa? 🙏"
 - Setelah customer memberikan namanya, baru lanjutkan membantu pertanyaan mereka.
 - Jika customer sudah menyebutkan namanya di chat sebelumnya (cek histori), JANGAN tanya lagi.
 
@@ -42,14 +48,17 @@ Panduan Menangani Lampiran File:
 
 Panduan Komunikasi:
 - Jawab dengan ramah, profesional, dan to-the-point dalam Bahasa Indonesia yang baik.
-- Jangan sebut dirimu AI, kamu adalah tim MK Metal Indo.
+- Jangan sebut dirimu AI, kamu adalah tim MK Metalindo.
 - Fokus membantu layanan kami (Laser Cutting, Bending, Shearing, Fabrikasi).
-- Jika customer tanya teknis mendalam atau ingin deal, berikan kontak Sales Office: ${salesContact} (WA/Telp) atau arahkan ke 08113185800.
+- Jika customer tanya teknis mendalam atau ingin deal, berikan kontak Sales Office: ${salesContact} (WA/Telp) atau arahkan ke 08113195800.
 
 Informasi Perusahaan:
 - Workshop: Jl. Tambak Sawah No.6B, Waru, Sidoarjo.
 - Jam operasional: Senin-Sabtu 08.00-16.00 WIB.
 - Material Laser: Besi, Stainless Steel, Aluminium, Mild Steel (Tebal maks 20mm).`;
+
+const pendingMediaReplies = new Map<string, NodeJS.Timeout>();
+const collectedMediaFiles = new Map<string, string[]>();
 
 export async function POST(req: Request) {
   try {
@@ -96,7 +105,12 @@ export async function POST(req: Request) {
     
     // 🔥 USE BAILEYS PRE-RESOLVED DATA
     // cleanPhone = real Indonesian phone (08xxx), rawRemoteJid = original WA address for reply routing
-    const cleanPhone = body.payload?.cleanPhone || customerNumber;
+    let cleanPhone = body.payload?.cleanPhone || customerNumber;
+    if (cleanPhone.startsWith('628')) {
+      cleanPhone = '0' + cleanPhone.substring(2);
+    } else if (cleanPhone.startsWith('62')) {
+      cleanPhone = '0' + cleanPhone.substring(2);
+    }
     const rawRemoteJid = body.payload?.rawRemoteJid || targetJid;
     const replyJid = rawRemoteJid; // Always reply to the RAW jid, not the resolved one
     
@@ -138,9 +152,8 @@ export async function POST(req: Request) {
         let fileUrl = null;
         let fileName = `wa_${Date.now()}_file`;
 
-        // 🔥 Hybrid Media Fetcher: Prefers direct Baileys file drop
+        // 🔥 Hybrid Media Fetcher
         try {
-          // Check if Baileys adapter already dropped the file natively
           const directFile = body.payload?._data?.localFileName;
           
           if (directFile) {
@@ -148,7 +161,6 @@ export async function POST(req: Request) {
             fileUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/uploads/${fileName}`;
             console.log(`[TRACE 3] Media directly injected: ${fileUrl}`);
           } else {
-            // Fallback: Attempt WAHA API fetch (Legacy path)
             const encodedId = encodeURIComponent(message_id);
             const wahaFileUrl = `${WAHA_URL}/api/default/messages/${encodedId}/download`;
             console.log(`📡 FETCHING MEDIA FROM WAHA (Fallback): ${wahaFileUrl}`);
@@ -177,44 +189,20 @@ export async function POST(req: Request) {
           console.error("❌ Media Bridge ERROR:", e.message);
         }
 
-        const replyText = `Terima kasih Kakak ${userName}, file/lampiran sudah kami terima dengan baik. Tim Sales Engineering kami akan segera me-review dan memproses estimasi untuk Kakak. Kami akan menghubungi Kakak kembali secepatnya ya. 🙏`;
-        console.log(`[TRACE 4] Sending Media Auto-Reply: ${replyText}`);
+        // 1. CLEAR EXISTING TIMEOUT
+        if (pendingMediaReplies.has(leadId)) {
+          clearTimeout(pendingMediaReplies.get(leadId));
+        }
 
-        // Reply to user
-        await fetch(`${WAHA_URL}/api/sendText`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-          body: JSON.stringify({ chatId: replyJid, text: replyText, session: 'default' })
-        });
+        // 2. COLLECT MEDIA FILES
+        if (!collectedMediaFiles.has(leadId)) {
+          collectedMediaFiles.set(leadId, []);
+        }
+        if (fileUrl) {
+           collectedMediaFiles.get(leadId)!.push(fileUrl);
+        }
 
-        // Notify Sales PIC — with Chat Summary
-        const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/dashboard`;
-        const historyForSummary = await query(
-          `SELECT message_text FROM chat_history WHERE lead_id = $1 AND direction = 'incoming' ORDER BY timestamp DESC LIMIT 10`,
-          [leadId]
-        );
-        const allChat = historyForSummary.rows.map((r: any) => r.message_text).join(' ').toLowerCase();
-        const serviceMap: [string, string][] = [
-          ['laser', 'Laser Cutting Plat'], ['pipa', 'Cutting Laser Pipa'],
-          ['bending', 'Bending CNC'], ['shearing', 'Shearing'],
-          ['fabrikasi', 'Fabrikasi'], ['potong', 'Pemotongan Material'],
-          ['stainless', 'Material Stainless'], ['aluminium', 'Material Aluminium'],
-          ['besi', 'Material Besi'], ['plat', 'Cutting Plat'],
-        ];
-        const detected = serviceMap.filter(([k]) => allChat.includes(k)).map(([, v]) => v);
-        const summaryText = detected.length > 0 ? detected.join(', ') : 'Belum terdeteksi spesifik (silakan cek histori chat)';
-
-
-        // Count previous file submissions for priority escalation
-        const prevFiles = await query(
-          `SELECT COUNT(*) as cnt FROM chat_history WHERE lead_id = $1 AND message_text LIKE '%[File From WA%'`,
-          [leadId]
-        );
-        const fileCount = parseInt(prevFiles.rows[0].cnt) + 1;
-        const isRepeat = fileCount > 1;
-        const priorityTag = isRepeat ? '🔴 *URGENT/PRIORITAS TINGGI* (Customer kirim file ke-' + fileCount + '!)' : '🟢 File Pertama';
-
-        // Update status and save outgoing chat
+        // Update status and save outgoing chat (to keep record of intercept)
         await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
         await query(
           `INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) 
@@ -222,33 +210,52 @@ export async function POST(req: Request) {
           [leadId, fileUrl ? `[File From WA: ${fileName}] Link: ${fileUrl}` : `[Media Intercepted - Forwarded to Sales Office]`, sessionId]
         );
 
-        // Build sales alert with priority
-        const alertParts = [
-          isRepeat ? '*🔴 FILE MASUK - URGENT (WhatsApp)*' : '*📋 FILE MASUK (WhatsApp)*',
-          '',
-          priorityTag,
-          '',
-          '👤 Dari: *' + userName + '*',
-          '📞 No: ' + cleanPhone,
-          '🖼️ Jenis: [Media/Gambar/PDF]',
-          '📄 Link: ' + (fileUrl || '(Gagal tarik, cek WA langsung)'),
-          '',
-          '📝 *Ringkasan Kebutuhan Customer:*',
-          summaryText,
-          '',
-          '💡 Untuk detail lengkap histori chat, silakan cek *Monitoring Dashboard CRM*:',
-          dashboardUrl
-        ];
-        const alertSales = alertParts.join('\n');
+        // 3. SET NEW TIMEOUT (60 seconds)
+        const timeout = setTimeout(async () => {
+             const finalFiles = collectedMediaFiles.get(leadId) || [];
+             const fileCount = finalFiles.length;
 
-        await fetch(`${WAHA_URL}/api/sendText`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-          body: JSON.stringify({ chatId: dynamicContactWaha, text: alertSales, session: 'default' })
-        });
+             const replyText = `Terima kasih Kakak ${userName}, file/lampiran sudah kami terima dengan baik. Apakah file ini saja atau kah ada file lain atau tambahan info spesifikasi? Jika tidak, kami akan teruskan ke tim engineer MK Metalindo. 🙏`;
+             
+             // Reply to user
+             await fetch(`${WAHA_URL}/api/sendText`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
+               body: JSON.stringify({ chatId: replyJid, text: replyText, session: 'default' })
+             });
 
-        console.log(`[TRACE 5] Media Intercept: file #${fileCount}, priority=${isRepeat ? 'URGENT' : 'normal'}`);
-        return NextResponse.json({ success: true, action: 'media_forwarded_to_sales' });
+             // Notify Sales PIC
+             const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/dashboard`;
+             const alertParts = [
+               '*📋 BATCH FILE MASUK (WhatsApp)*',
+               '',
+               `🟢 Total File Diterima: ${fileCount}`,
+               '',
+               '👤 Dari: *' + userName + '*',
+               '📞 No: ' + cleanPhone,
+               '📄 Link Files:\n' + finalFiles.map((f, i) => `${i+1}. ${f}`).join('\n'),
+               '',
+               '💡 Untuk detail lengkap histori chat, silakan cek *Monitoring Dashboard CRM*:',
+               dashboardUrl
+             ];
+             const alertSales = alertParts.join('\n');
+
+             await fetch(`${WAHA_URL}/api/sendText`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
+               body: JSON.stringify({ chatId: dynamicContactWaha, text: alertSales, session: 'default' })
+             });
+
+             // Cleanup Memory
+             pendingMediaReplies.delete(leadId);
+             collectedMediaFiles.delete(leadId);
+             console.log(`[TRACE 5] Batch Media Processed: sent 1 reply for ${fileCount} files.`);
+        }, 60000); // 1 MINUTE DURATION
+
+        pendingMediaReplies.set(leadId, timeout);
+
+        console.log(`[TRACE 2.5] Media Intercept: queued batch response. (Timeout 60s)`);
+        return NextResponse.json({ success: true, action: 'media_queued_for_batching' });
       }
       // ---------------------------------------------------
 
@@ -279,21 +286,29 @@ export async function POST(req: Request) {
       }
 
       if (matchedFaq) {
-        console.log(`[TRACE 11] FAQ Matched! Dispatching text: ${matchedFaq.response}`);
-        // Reply instantly using FAQ
-        await fetch(`${WAHA_URL}/api/sendText`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-          body: JSON.stringify({ chatId: replyJid, text: matchedFaq.response, session: 'default' })
-        });
+        const delayMs = Math.floor(Math.random() * (12000 - 5000 + 1)) + 5000;
+        console.log(`[TRACE 11] FAQ Matched! Delaying response by ${delayMs}ms to simulate human typing.`);
+        
+        // Decouple from webhook synchronous response
+        setTimeout(async () => {
+          try {
+            await fetch(`${WAHA_URL}/api/sendText`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
+              body: JSON.stringify({ chatId: replyJid, text: matchedFaq.response, session: 'default' })
+            });
 
-        // Record outgoing message
-        await query(
-          `INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) 
-           VALUES ($1, 'MK Metal Indo', $2, 'outgoing', true, $3)`,
-          [leadId, matchedFaq.response, sessionId]
-        );
-        return NextResponse.json({ success: true, action: 'faq_answered' });
+            await query(
+              `INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) 
+               VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`,
+              [leadId, matchedFaq.response, sessionId]
+            );
+          } catch (e: any) {
+            console.error("[FAQ Background Task Error]:", e.message);
+          }
+        }, delayMs);
+
+        return NextResponse.json({ success: true, action: 'faq_queued' });
       }
       // ---------------------------------------------------
 
@@ -326,7 +341,7 @@ export async function POST(req: Request) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'HTTP-Referer': 'http://localhost:3000',
-          'X-Title': 'MK Metal Indo WA Chat'
+          'X-Title': 'MK Metalindo WA Chat'
         },
         body: JSON.stringify({
           model: process.env.AI_MODEL || "google/gemini-2.0-flash-001",
@@ -343,45 +358,53 @@ export async function POST(req: Request) {
       if (openRouterRes.ok) {
         const aiData = await openRouterRes.json();
         const replyText = aiData.choices?.[0]?.message?.content || '';
-        console.log(`[TRACE 13] OpenRouter Success! Emitting AI Reply: ${replyText}`);
+        
+        const typingDelayMs = Math.floor(Math.random() * (10000 - 4000 + 1)) + 4000;
+        console.log(`[TRACE 13] OpenRouter Success! Delaying WAHA dispatch by ${typingDelayMs}ms to simulate typing.`);
 
-        // 4. Send response via WAHA
-        await fetch(`${WAHA_URL}/api/sendText`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': WAHA_API_KEY
-          },
-          body: JSON.stringify({
-            chatId: replyJid,
-            text: replyText,
-            session: 'default' 
-          })
-        });
-        console.log(`[TRACE 14] Message successfully dispatched to Baileys Engine`);
+        setTimeout(async () => {
+          try {
+            // 4. Send response via WAHA
+            await fetch(`${WAHA_URL}/api/sendText`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': WAHA_API_KEY
+              },
+              body: JSON.stringify({
+                chatId: replyJid,
+                text: replyText,
+                session: 'default' 
+              })
+            });
+            console.log(`[TRACE 14] AI Message dispatched to Baileys Engine after delay`);
 
-        // 5. Record outgoing message
-        await query(
-          `INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) 
-           VALUES ($1, 'MK Metal Indo', $2, 'outgoing', true, $3)`,
-          [leadId, replyText, sessionId]
-        );
+            // 5. Record outgoing message
+            await query(
+              `INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) 
+               VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`,
+              [leadId, replyText, sessionId]
+            );
 
-        // Auto-upgrade status & Notify Sales if AI hands off
-        if (replyText.toLowerCase().includes(dynamicSalesContact) || replyText.toLowerCase().includes('luluk')) {
-          await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
-          
-          // Send notification to Sales via WAHA
-          await fetch(`${WAHA_URL}/api/sendText`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-            body: JSON.stringify({ 
-              chatId: dynamicContactWaha, 
-              text: `*Lead Handoff AI*: Customer *${userName}* (${customerNumber}) baru saja diarahkan ke Anda oleh AI Agent. Mohon bersiap untuk follow-up.`, 
-              session: 'default' 
-            })
-          });
-        }
+            // Auto-upgrade status & Notify Sales if AI hands off
+            if (replyText.toLowerCase().includes(dynamicSalesContact) || replyText.toLowerCase().includes('luluk')) {
+              await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
+              
+              // Send notification to Sales via WAHA
+              await fetch(`${WAHA_URL}/api/sendText`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
+                body: JSON.stringify({ 
+                  chatId: dynamicContactWaha, 
+                  text: `*Lead Handoff AI*: Customer *${userName}* (${customerNumber}) baru saja diarahkan ke Anda oleh AI Agent. Mohon bersiap untuk follow-up.`, 
+                  session: 'default' 
+                })
+              });
+            }
+          } catch (e: any) {
+             console.error("[AI Background Task Error]:", e.message);
+          }
+        }, typingDelayMs);
       } else {
         // OpenRouter API failed (e.g., 503 No Capacity)
         const errorText = await openRouterRes.text();
@@ -393,7 +416,7 @@ export async function POST(req: Request) {
           headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
           body: JSON.stringify({
             chatId: replyJid,
-            text: "Mohon maaf, sistem AI kami sedang mengalami kepadatan respons. Mohon ulangi pertanyaan Anda beberapa saat lagi, atau hubungi Sales Tech kami di 08113185800.",
+            text: "Mohon maaf, sistem AI kami sedang mengalami kepadatan respons. Mohon ulangi pertanyaan Anda beberapa saat lagi, atau hubungi Sales Tech kami di 08113195800.",
             session: 'default' 
           })
         });

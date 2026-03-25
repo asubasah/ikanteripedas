@@ -6,7 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: 'Blog & Edukasi Industri | MK Metal Indo',
+  title: 'Blog & Edukasi Industri | MK Metalindo',
   description: 'Informasi terbaru seputar industri sheet metal fabrication, laser cutting, dan bending CNC dari ahlinya.',
 };
 
@@ -102,7 +102,7 @@ export default async function BlogIndex() {
                 <span className="text-amber">Konsultasikan</span> Sekarang.
               </h2>
               <p className="text-white/60 mb-12 text-lg md:text-xl font-light leading-relaxed max-w-2xl mx-auto">
-                Tim engineering MK Metal Indo siap membantu mewujudkan desain Anda dengan presisi mesin laser CNC terbaru dan pengerjaan yang profesional.
+                Tim engineering MK Metalindo siap membantu mewujudkan desain Anda dengan presisi mesin laser CNC terbaru dan pengerjaan yang profesional.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-6">

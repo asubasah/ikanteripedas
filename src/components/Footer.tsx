@@ -1,5 +1,10 @@
+'use client';
+
 import Image from "next/image";
+import Link from "next/link";
 import { socialLinks } from "@/data/homepage";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/data/translations";
 
 const SocialIcon = ({ name }: { name: string }) => {
   switch (name) {
@@ -29,73 +34,76 @@ const SocialIcon = ({ name }: { name: string }) => {
 };
 
 export function Footer() {
+  const { lang } = useLanguage();
+  const t = translations[lang].footer;
+  const nav = translations[lang].nav;
+  const common = translations[lang].common;
   return (
     <footer className="mt-32 border-t border-white/5 bg-charcoal pt-24 pb-12">
       <div className="shell mx-auto grid gap-16 px-6 md:grid-cols-12">
-        <div className="md:col-span-5">
-          <div className="flex items-center gap-3">
-            <div className="relative h-16 w-16 shrink-0">
-              <Image
-                src="/images/logo/logo_mkmetalindo_hires.png"
-                alt="MK Metal Indo Logo"
-                width={64}
-                height={64}
-                className="h-full w-full object-contain"
-              />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-white tracking-tight">MK Metal Indo</p>
-              <p className="text-sm text-text-muted font-medium">High Precision Fabrication Partner</p>
-            </div>
+        <div className="lg:col-span-4">
+            <Link href="/" className="inline-block group no-underline">
+              <div className="flex items-center gap-3">
+                <div className="relative h-12 w-12 shrink-0 flex items-center justify-center bg-white rounded-lg p-1.5 shadow-md">
+                  <Image
+                    src="/images/logo/logo_mkmetalindo_hires.png"
+                    alt="MK Metalindo Logo"
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-contain group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+                <p className="text-lg font-bold tracking-tight text-white m-0">MK Metalindo</p>
+              </div>
+            </Link>
+            <p className="mt-6 text-sm text-text-muted leading-relaxed max-w-sm">
+              {t.about}
+            </p>
           </div>
-          <p className="mt-6 text-base text-text-muted leading-relaxed max-w-sm">
-            Jasa laser cutting dan fabrikasi metal untuk bengkel & produksi yang butuh hasil rapi, pengerjaan cepat, dan proses tanpa drama.
-          </p>
-          <div className="mt-8 flex items-center gap-4">
-            {socialLinks.map((social) => (
-              <a
-                key={social.name}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-text-muted hover:text-white transition-colors duration-200"
-                aria-label={social.name}
-              >
-                <SocialIcon name={social.name} />
-              </a>
-            ))}
-          </div>
-        </div>
 
-        <div className="md:col-span-3">
-          <h4 className="mono text-[10px] font-bold uppercase tracking-[0.4em] text-maroon-600 mb-6">Contact Details</h4>
+          <div className="lg:col-span-2">
+            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-white mb-6 underline decoration-maroon decoration-2 underline-offset-8 decoration-maroon-600/30">{t.links}</h4>
+            <ul className="space-y-4 text-sm font-medium">
+              <li><Link href="/#layanan" className="text-text-muted hover:text-white transition-colors no-underline">{nav.layanan}</Link></li>
+              <li><Link href="/#alasan" className="text-text-muted hover:text-white transition-colors no-underline">{nav.kenapa}</Link></li>
+              <li><Link href="/#alur" className="text-text-muted hover:text-white transition-colors no-underline">{nav.alur}</Link></li>
+              <li><Link href="/#usecase" className="text-text-muted hover:text-white transition-colors no-underline">{nav.portofolio}</Link></li>
+              <li><Link href="/blog" className="text-text-muted hover:text-white transition-colors no-underline">{nav.blog}</Link></li>
+            </ul>
+          </div>
+
+          <div className="lg:col-span-4">
+            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-white mb-6 underline decoration-maroon decoration-2 underline-offset-8 decoration-maroon-600/30">{t.contact}</h4>
           <ul className="space-y-4 text-sm font-medium text-text-muted">
             <li className="flex flex-col">
-              <span className="text-[10px] uppercase text-white/20 mb-1">Telepon</span>
+              <span className="text-[10px] uppercase text-white/20 mb-1">{common.phone}</span>
               <span className="text-text-light">(031) 9969 4300</span>
             </li>
             <li className="flex flex-col">
-              <span className="text-[10px] uppercase text-white/20 mb-1">WhatsApp</span>
+              <span className="text-[10px] uppercase text-white/20 mb-1">{common.whatsapp}</span>
               <span className="text-text-light">0811 3195 800</span>
             </li>
             <li className="flex flex-col">
-              <span className="text-[10px] uppercase text-white/20 mb-1">Email Support</span>
+              <span className="text-[10px] uppercase text-white/20 mb-1">{common.email}</span>
               <span className="text-text-light">project@mkmetalindo.co.id</span>
             </li>
             <li className="flex flex-col">
-              <span className="text-[10px] uppercase text-white/20 mb-1">Website</span>
+              <span className="text-[10px] uppercase text-white/20 mb-1">{common.website}</span>
               <span className="text-text-light">www.mkmetalindo.co.id</span>
             </li>
           </ul>
         </div>
 
         <div className="md:col-span-4">
-          <h4 className="mono text-[10px] font-bold uppercase tracking-[0.4em] text-maroon-600 mb-6">Headquarters</h4>
+          <h4 className="mono text-[10px] font-bold uppercase tracking-[0.4em] text-maroon-600 mb-6">{common.headquarters}</h4>
           <p className="text-sm font-medium text-text-muted mb-8 leading-relaxed">
-            Jl. Tambak Sawah No.6B, Waru, Sidoarjo,<br />Jawa Timur 61253
+            <strong>{common.workshop}:</strong><br/>
+            Jl. Tambak Sawah No.6B, Waru, Sidoarjo, Jawa Timur 61253<br/><br/>
+            <strong>{common.warehouse}:</strong><br/>
+            Pergudangan Grand Tambak Sawah No B11, Jabon, Waru, Sidoarjo, Jawa Timur.
           </p>
           <div className="flex flex-wrap gap-4">
-            {["Layanan", "Cara Kerja", "Hubungi Kami"].map((item) => (
+            {[nav.layanan, nav.alur, nav.contact].map((item) => (
               <a key={item} href={`#${item.toLowerCase().replace(" ", "")}`} className="text-xs font-bold text-white/40 hover:text-white transition-colors border-b border-transparent hover:border-maroon-600 pb-1">
                 {item}
               </a>
@@ -106,11 +114,11 @@ export function Footer() {
 
       <div className="shell mx-auto mt-24 border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">
-          © {new Date().getFullYear()} MK Metal Indo. Precision Engineering. <span className="ml-2 border-l border-white/10 pl-2">Powered by The Doctor</span>
+          © {new Date().getFullYear()} MK Metalindo. Precision Engineering. <span className="ml-2 border-l border-white/10 pl-2">{common.powered}</span>
         </p>
         <div className="flex gap-6 text-[10px] font-bold uppercase tracking-widest text-white/20">
-          <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
-          <span className="hover:text-white cursor-pointer transition-colors">Terms of Service</span>
+          <span className="hover:text-white cursor-pointer transition-colors">{common.privacy}</span>
+          <span className="hover:text-white cursor-pointer transition-colors">{common.terms}</span>
         </div>
       </div>
     </footer>

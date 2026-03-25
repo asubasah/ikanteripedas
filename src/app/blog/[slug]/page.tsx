@@ -14,11 +14,11 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   
   const res = await query('SELECT title, meta_description, featured_image FROM articles WHERE slug = $1 AND status = $2', [slug, 'published']);
   
-  if (res.rows.length === 0) return { title: 'Not Found | MK Metal Indo' };
+  if (res.rows.length === 0) return { title: 'Not Found | MK Metalindo' };
   
   const article = res.rows[0];
   return {
-    title: `${article.title} | MK Metal Indo Blog`,
+    title: `${article.title} | MK Metalindo Blog`,
     description: article.meta_description,
     openGraph: {
       title: article.title,
@@ -66,7 +66,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             <div className="flex items-center justify-center gap-4 text-xs font-bold text-white/40 uppercase tracking-widest border-y border-white/5 py-4 max-w-md mx-auto">
               <span>{new Date(article.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
               <span className="w-1.5 h-1.5 bg-amber/50 rounded-full"></span>
-              <span>By MK Metal Indo</span>
+              <span>By MK Metalindo</span>
             </div>
           </div>
         </section>
@@ -109,7 +109,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           <div className="mt-20 bg-gradient-to-br from-charcoal-900 to-red-900/30 text-white border border-red-500/20 p-10 md:p-12 rounded-[2rem] text-center shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-amber/10 rounded-full blur-[80px] pointer-events-none"></div>
             <h3 className="text-3xl font-black mb-4 relative z-10">Butuh Jasa Laser Cutting & Bending?</h3>
-            <p className="text-white/70 mb-8 max-w-xl mx-auto text-lg relative z-10">Kami di MK Metal Indo siap memproduksi komponen fabrikasi Anda dengan kecepatan dan presisi mesin CNC terkini.</p>
+            <p className="text-white/70 mb-8 max-w-xl mx-auto text-lg relative z-10">Kami di MK Metalindo siap memproduksi komponen fabrikasi Anda dengan kecepatan dan presisi mesin CNC terkini.</p>
             <a 
               href="https://wa.me/628113195800?text=Halo%20MK%20Metal%20Indo,%20saya%20ingin%20konsultasi%20mengenai%20kebutuhan%20fabrikasi%20saya." 
               target="_blank"

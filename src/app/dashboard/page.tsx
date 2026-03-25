@@ -205,7 +205,7 @@ export default function DashboardPage() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-maroon to-transparent opacity-50"></div>
           
           <div className="text-center mb-8">
-            <h1 className="text-xl font-bold text-white tracking-tight mb-2">MK Metal Indo</h1>
+            <h1 className="text-xl font-bold text-white tracking-tight mb-2">MK Metalindo</h1>
             <p className="text-xs text-text-muted">Secure Console Access</p>
           </div>
 
@@ -285,7 +285,7 @@ export default function DashboardPage() {
             >
               📝
             </Link>
-            <h1 className="text-sm font-bold text-white tracking-tight">MK Metal Indo — Chat Console</h1>
+            <h1 className="text-sm font-bold text-white tracking-tight">MK Metalindo — Chat Console</h1>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
