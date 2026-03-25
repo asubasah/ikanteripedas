@@ -158,9 +158,23 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [selectedLead]);
 
+  const lastMessageIdRef = useRef<number | null>(null);
+
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length === 0) {
+      lastMessageIdRef.current = null;
+      return;
+    }
+    const currentLastMessage = messages[messages.length - 1];
+    if (currentLastMessage.id !== lastMessageIdRef.current) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      lastMessageIdRef.current = currentLastMessage.id;
+    }
   }, [messages]);
+
+  useEffect(() => {
+    lastMessageIdRef.current = null;
+  }, [selectedLead?.id]);
 
   const filteredLeads = leads.filter(l =>
     l.nama_lead?.toLowerCase().includes(searchQuery.toLowerCase()) ||
