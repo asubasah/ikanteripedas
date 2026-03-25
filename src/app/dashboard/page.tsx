@@ -154,7 +154,7 @@ export default function DashboardPage() {
   // Auto-refresh messages for selected lead
   useEffect(() => {
     if (!selectedLead) return;
-    const interval = setInterval(() => fetchMessages(selectedLead.id), 4000);
+    const interval = setInterval(() => fetchMessages(selectedLead.id), 12000); // Changed to 12s per user request
     return () => clearInterval(interval);
   }, [selectedLead]);
 
@@ -167,13 +167,17 @@ export default function DashboardPage() {
     }
     const currentLastMessage = messages[messages.length - 1];
     if (currentLastMessage.id !== lastMessageIdRef.current) {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // Use 'auto' (instant) if it's the first time loading this lead's messages, otherwise 'smooth'
+      const isFirstLoad = lastMessageIdRef.current === null;
+      chatEndRef.current?.scrollIntoView({ behavior: isFirstLoad ? 'auto' : 'smooth' });
       lastMessageIdRef.current = currentLastMessage.id;
     }
   }, [messages]);
 
   useEffect(() => {
     lastMessageIdRef.current = null;
+    // Clearing messages on lead change forces the view to start clean, making the instant scroll work better.
+    setMessages([]);
   }, [selectedLead?.id]);
 
   const filteredLeads = leads.filter(l =>
@@ -467,8 +471,8 @@ export default function DashboardPage() {
                               )}
                             </div>
                           </div>
-                          <p className="text-[9px] text-white/20 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {new Date(msg.timestamp).toLocaleString('id-ID')}
+                          <p className={`text-[10px] text-text-muted mt-1.5 px-2 ${msg.direction === 'incoming' ? 'text-left' : 'text-right'}`}>
+                            {new Date(msg.timestamp).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
@@ -478,9 +482,9 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Bottom Info Bar */}
-                <div className="h-12 bg-charcoal-800 border-t border-border-industrial flex items-center justify-center px-6">
+                <div className="h-12 bg-charcoal-800 border-t border-border-industrial flex items-center justify-center px-6 shrink-0">
                   <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest">
-                    Read-only monitoring · {messages.length} message{messages.length !== 1 ? 's' : ''} · Auto-refresh 4s
+                    Read-only monitoring · {messages.length} message{messages.length !== 1 ? 's' : ''} · Auto-refresh 12s
                   </p>
                 </div>
               </>
