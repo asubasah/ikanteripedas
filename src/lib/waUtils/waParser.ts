@@ -4,9 +4,15 @@ async function resolveLidToPhone(lid: string): Promise<string | null> {
   const BAILEYS_URL = 'http://127.0.0.1:3017';
   const encodedLid = encodeURIComponent(lid);
   
-  // 🎯 Use our new Baileys Meta LID Decryption Endpoint
+  // 🎯 Use our new Baileys/WAHA Meta LID Decryption Endpoint
+  const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
   try {
-    const res = await fetch(`${BAILEYS_URL}/api/contacts/${encodedLid}`);
+    const res = await fetch(`${BAILEYS_URL}/api/contacts/${encodedLid}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      }
+    });
     if (res.ok) {
       const data = await res.json();
       const realId = data.phone?.split('@')[0];
