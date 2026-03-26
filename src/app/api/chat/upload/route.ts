@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
     // 3. Notify Sales Office via WAHA
     const WAHA_URL = 'http://localhost:3007';
-    const WAHA_API_KEY = 'mkm_crm_waha_secure_key';
+    const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
 
     const notificationText = `*File Uploaded (Web Chat)*\n\n` +
       `👤 Dari: *${userName}*\n` +

@@ -101,7 +101,7 @@ export async function POST(req: Request) {
       
       // Notify Sales PIC
       const WAHA_URL = 'http://127.0.0.1:3017';
-      const WAHA_API_KEY = 'no-auth';
+      const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
       
       const salesRes = await query(`SELECT setting_value FROM app_settings WHERE setting_key = 'sales_contact_number'`);
       const salesPIC = salesRes.rows.length > 0 ? salesRes.rows[0].setting_value : '08961722712';
