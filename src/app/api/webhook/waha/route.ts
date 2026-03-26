@@ -119,20 +119,56 @@ export async function POST(req: Request) {
 
     console.log(`🔥 PARSED: phone=${cleanPhone}, replyTo=${replyJid}, text=${text}, type=${parsedType}`);
 
-      const leadResult = await query(
-        `INSERT INTO leads_mk (nama_lead, nomor_wa, last_chat, sumber_lead) 
-         VALUES ($1, $2, NOW(), 'WhatsApp') 
-         ON CONFLICT (nomor_wa) 
-         DO UPDATE SET 
-           last_chat = NOW(),
-           nama_lead = CASE WHEN leads_mk.nama_lead = 'Customer WA' THEN EXCLUDED.nama_lead ELSE leads_mk.nama_lead END
-         RETURNING id, nama_lead, status_crm, last_chat`,
-        [userName, cleanPhone]
-      );
+      let leadResult;
+      try {
+        leadResult = await query(
+          `INSERT INTO leads_mk (nama_lead, nomor_wa, last_chat, sumber_lead) 
+           VALUES ($1, $2, NOW(), 'WhatsApp') 
+           ON CONFLICT (nomor_wa) 
+           DO UPDATE SET 
+             last_chat = NOW(),
+             nama_lead = CASE WHEN leads_mk.nama_lead = 'Customer WA' THEN EXCLUDED.nama_lead ELSE leads_mk.nama_lead END
+           RETURNING id, nama_lead, status_crm, last_chat, is_jawab_ai`,
+          [userName, cleanPhone]
+        );
+      } catch (dbErr: any) {
+        console.warn("[DB WARNING]:", dbErr.message);
+        if (dbErr.code === '42703' || (dbErr.message && dbErr.message.includes('is_jawab_ai'))) {
+          console.log('[MIGRATION] Auto-adding is_jawab_ai column dynamically for VPS...');
+          await query('ALTER TABLE leads_mk ADD COLUMN IF NOT EXISTS is_jawab_ai BOOLEAN DEFAULT TRUE');
+          leadResult = await query(
+            `INSERT INTO leads_mk (nama_lead, nomor_wa, last_chat, sumber_lead) 
+             VALUES ($1, $2, NOW(), 'WhatsApp') 
+             ON CONFLICT (nomor_wa) 
+             DO UPDATE SET 
+               last_chat = NOW(),
+               nama_lead = CASE WHEN leads_mk.nama_lead = 'Customer WA' THEN EXCLUDED.nama_lead ELSE leads_mk.nama_lead END
+             RETURNING id, nama_lead, status_crm, last_chat, is_jawab_ai`,
+            [userName, cleanPhone]
+          );
+        } else {
+          throw dbErr;
+        }
+      }
       const leadId = leadResult.rows[0].id;
       const currentStatus = leadResult.rows[0].status_crm;
       const lastChatFromDB = leadResult.rows[0].last_chat;
-      console.log(`[TRACE 1] Lead ID: ${leadId}, Status: ${currentStatus}, Phone: ${cleanPhone}`);
+      const isJawabAi = leadResult.rows[0].is_jawab_ai ?? true;
+      console.log(`[TRACE 1] Lead ID: ${leadId}, Status: ${currentStatus}, Phone: ${cleanPhone}, AI Active: ${isJawabAi}`);
+
+      // Handle Admin Command triggers
+      if (body.payload?.fromMe === true) {
+         const lowerText = text.toLowerCase().trim();
+         if (['#pause', '#human'].includes(lowerText)) {
+             await query(`UPDATE leads_mk SET is_jawab_ai = false WHERE id = $1`, [leadId]);
+             console.log(`[TRACE AI HANDOFF] AI Paused for Lead ID: ${leadId}`);
+             return NextResponse.json({ success: true, action: 'ai_paused' });
+         } else if (['#resume', '#ai'].includes(lowerText)) {
+             await query(`UPDATE leads_mk SET is_jawab_ai = true WHERE id = $1`, [leadId]);
+             console.log(`[TRACE AI HANDOFF] AI Resumed for Lead ID: ${leadId}`);
+             return NextResponse.json({ success: true, action: 'ai_resumed' });
+         }
+      }
 
       // 2. Record incoming message
       await query(
@@ -140,6 +176,12 @@ export async function POST(req: Request) {
          VALUES ($1, $2, $3, 'incoming', $4)`,
         [leadId, userName, text, sessionId]
       );
+
+      // Stop AI processing if Handoff is active
+      if (!isJawabAi) {
+          console.log(`[TRACE 1.5] AI is PAUSED for Lead ID: ${leadId}. Skipping AI response.`);
+          return NextResponse.json({ success: true, action: 'ai_is_paused' });
+      }
 
       // 🚨 Fix 31.6s timeout: Force IPv4 loopback because Node 18+ resolves localhost to ::1
       const WAHA_URL = 'http://127.0.0.1:3017'; 

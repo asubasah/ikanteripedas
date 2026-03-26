@@ -39,6 +39,7 @@ export async function extractPhoneDeep(body: any, payload: any): Promise<{ phone
   if (payload._data?.id?.remote) candidates.push({ raw: payload._data.id.remote, source: '_data.id.remote' });
   if (payload.sender) candidates.push({ raw: payload.sender, source: 'sender' });
   if (payload.from) candidates.push({ raw: payload.from, source: 'from' });
+  if (payload.to) candidates.push({ raw: payload.to, source: 'to' });
 
   // 🔥 2. ITERATE, RESOLVE, AND CAPTURE
   let bestIdSoFar: string | null = null;
@@ -95,11 +96,19 @@ export async function extractPhoneDeep(body: any, payload: any): Promise<{ phone
 
 export async function parseWebhook(body: any) {
   try {
-    if (body.event !== 'message' || !body.payload || body.payload.fromMe) {
-        return { valid: false, reason: "not_incoming_user_message" };
+    if (!['message', 'message.any'].includes(body.event) || !body.payload) {
+        return { valid: false, reason: "invalid_event_type" };
     }
 
     const payload = body.payload;
+    const isFromMe = payload.fromMe === true;
+    const msgText = (payload.body || '').toLowerCase().trim();
+    const isCommandMsg = ['#pause', '#resume', '#human', '#ai'].includes(msgText);
+
+    if (isFromMe && !isCommandMsg) {
+        return { valid: false, reason: "outgoing_message_ignored" };
+    }
+
     const isGroup = (payload.from || '').includes("@g.us");
 
     // Async extraction with Deep Multi-Source + LID Resolution
