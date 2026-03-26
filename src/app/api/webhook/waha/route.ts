@@ -60,6 +60,7 @@ Informasi Perusahaan:
 
 const pendingMediaReplies = new Map<string, NodeJS.Timeout>();
 const collectedMediaFiles = new Map<string, string[]>();
+const pendingTextReplies = new Map<string, NodeJS.Timeout>();
 
 export async function POST(req: Request) {
   try {
@@ -356,115 +357,132 @@ export async function POST(req: Request) {
       // ---------------------------------------------------
 
       // 3. AI Logic
-      console.log(`[TRACE 12] Calling OpenRouter AI...`);
-      // Get history for context
-      const historyResult = await query(
-        `SELECT direction, message_text 
-         FROM chat_history 
-         WHERE lead_id = $1 
-         ORDER BY timestamp DESC LIMIT 5`,
-        [leadId]
-      );
+      if (pendingTextReplies.has(leadId)) {
+        clearTimeout(pendingTextReplies.get(leadId)!);
+        console.log(`[TRACE 11.5] Cleared previous debounce timer for ${leadId}.`);
+      }
 
-      const conversationHistory = historyResult.rows.reverse().map((row: any) => ({
-        role: row.direction === 'incoming' ? 'user' : 'assistant',
-        content: row.message_text
-      }));
+      console.log(`[TRACE 12] Waiting 12 seconds to batch messages for ${leadId}...`);
+      
+      const debounceTimer = setTimeout(async () => {
+        try {
+          console.log(`[TRACE 12.1] Debounce complete for ${leadId}. Fetching history and calling AI...`);
+          // Get history for context
+          const historyResult = await query(
+            `SELECT direction, message_text 
+             FROM chat_history 
+             WHERE lead_id = $1 
+             ORDER BY timestamp DESC LIMIT 7`,
+            [leadId]
+          );
 
-      const now = new Date();
-      const hours = (now.getUTCHours() + 7) % 24; // Convert UTC to WIB
-      let timeContext = "Pagi";
-      if (hours >= 11 && hours < 15) timeContext = "Siang";
-      else if (hours >= 15 && hours < 19) timeContext = "Sore";
-      else if (hours >= 19 || hours < 4) timeContext = "Malam";
+          const conversationHistory = historyResult.rows.reverse().map((row: any) => ({
+            role: row.direction === 'incoming' ? 'user' : 'assistant',
+            content: row.message_text
+          }));
 
-      const openRouterRes = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'http://localhost:3000',
-          'X-Title': 'MK Metalindo WA Chat'
-        },
-        body: JSON.stringify({
-          model: process.env.AI_MODEL || "google/gemini-2.0-flash-001",
-          messages: [
-            { role: 'system', content: getSystemPrompt(dynamicSalesContact, userName, timeContext) },
-            ...conversationHistory
-          ],
-          user: sessionId,
-          max_tokens: 500,
-          temperature: 0.7
-        })
-      });
+          const now = new Date();
+          const hours = (now.getUTCHours() + 7) % 24; // Convert UTC to WIB
+          let timeContext = "Pagi";
+          if (hours >= 11 && hours < 15) timeContext = "Siang";
+          else if (hours >= 15 && hours < 19) timeContext = "Sore";
+          else if (hours >= 19 || hours < 4) timeContext = "Malam";
 
-      if (openRouterRes.ok) {
-        const aiData = await openRouterRes.json();
-        const replyText = aiData.choices?.[0]?.message?.content || '';
-        
-        const typingDelayMs = Math.floor(Math.random() * (10000 - 4000 + 1)) + 4000;
-        console.log(`[TRACE 13] OpenRouter Success! Delaying WAHA dispatch by ${typingDelayMs}ms to simulate typing.`);
+          const openRouterRes = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+              'HTTP-Referer': 'http://localhost:3000',
+              'X-Title': 'MK Metalindo WA Chat'
+            },
+            body: JSON.stringify({
+              model: process.env.AI_MODEL || "google/gemini-2.0-flash-001",
+              messages: [
+                { role: 'system', content: getSystemPrompt(dynamicSalesContact, userName, timeContext) },
+                ...conversationHistory
+              ],
+              user: sessionId,
+              max_tokens: 500,
+              temperature: 0.7
+            })
+          });
 
-        setTimeout(async () => {
-          try {
-            // 4. Send response via WAHA
+          if (openRouterRes.ok) {
+            const aiData = await openRouterRes.json();
+            const replyText = aiData.choices?.[0]?.message?.content || '';
+            
+            const typingDelayMs = Math.floor(Math.random() * (7000 - 3000 + 1)) + 3000;
+            console.log(`[TRACE 13] OpenRouter Success! Delaying WAHA dispatch by ${typingDelayMs}ms.`);
+
+            setTimeout(async () => {
+              try {
+                // 4. Send response via WAHA
+                await fetch(`${WAHA_URL}/api/sendText`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Api-Key': WAHA_API_KEY
+                  },
+                  body: JSON.stringify({
+                    chatId: replyJid,
+                    text: replyText,
+                    session: 'default' 
+                  })
+                });
+                console.log(`[TRACE 14] AI Message dispatched to Baileys Engine after delay`);
+
+                // 5. Record outgoing message
+                await query(
+                  `INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) 
+                   VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`,
+                  [leadId, replyText, sessionId]
+                );
+
+                // Auto-upgrade status & Notify Sales if AI hands off
+                if (replyText.toLowerCase().includes(dynamicSalesContact) || replyText.toLowerCase().includes('luluk')) {
+                  await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
+                  
+                  // Send notification to Sales via WAHA
+                  await fetch(`${WAHA_URL}/api/sendText`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
+                    body: JSON.stringify({ 
+                      chatId: dynamicContactWaha, 
+                      text: `*Lead Handoff AI*: Customer *${userName}* (${customerNumber}) baru saja diarahkan ke Anda oleh AI Agent. Mohon bersiap untuk follow-up.`, 
+                      session: 'default' 
+                    })
+                  });
+                }
+              } catch (e: any) {
+                 console.error("[AI Background Task Error]:", e.message);
+              }
+            }, typingDelayMs);
+          } else {
+            // OpenRouter API failed (e.g., 503 No Capacity)
+            const errorText = await openRouterRes.text();
+            console.error("[TRACE 13 ERROR] OpenRouter API Error:", openRouterRes.status, errorText);
+            
+            // Notify user about system overload
             await fetch(`${WAHA_URL}/api/sendText`, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Api-Key': WAHA_API_KEY
-              },
+              headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
               body: JSON.stringify({
                 chatId: replyJid,
-                text: replyText,
+                text: "Mohon maaf, sistem AI kami sedang mengalami kepadatan respons. Mohon ulangi pertanyaan Anda beberapa saat lagi, atau hubungi Sales Tech kami di 08113195800.",
                 session: 'default' 
               })
             });
-            console.log(`[TRACE 14] AI Message dispatched to Baileys Engine after delay`);
-
-            // 5. Record outgoing message
-            await query(
-              `INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) 
-               VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`,
-              [leadId, replyText, sessionId]
-            );
-
-            // Auto-upgrade status & Notify Sales if AI hands off
-            if (replyText.toLowerCase().includes(dynamicSalesContact) || replyText.toLowerCase().includes('luluk')) {
-              await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
-              
-              // Send notification to Sales via WAHA
-              await fetch(`${WAHA_URL}/api/sendText`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-                body: JSON.stringify({ 
-                  chatId: dynamicContactWaha, 
-                  text: `*Lead Handoff AI*: Customer *${userName}* (${customerNumber}) baru saja diarahkan ke Anda oleh AI Agent. Mohon bersiap untuk follow-up.`, 
-                  session: 'default' 
-                })
-              });
-            }
-          } catch (e: any) {
-             console.error("[AI Background Task Error]:", e.message);
           }
-        }, typingDelayMs);
-      } else {
-        // OpenRouter API failed (e.g., 503 No Capacity)
-        const errorText = await openRouterRes.text();
-        console.error("[TRACE 13 ERROR] OpenRouter API Error:", openRouterRes.status, errorText);
-        
-        // Notify user about system overload
-        await fetch(`${WAHA_URL}/api/sendText`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-          body: JSON.stringify({
-            chatId: replyJid,
-            text: "Mohon maaf, sistem AI kami sedang mengalami kepadatan respons. Mohon ulangi pertanyaan Anda beberapa saat lagi, atau hubungi Sales Tech kami di 08113195800.",
-            session: 'default' 
-          })
-        });
-      }
-    return NextResponse.json({ success: true });
+        } catch (e: any) {
+           console.error("[Debounce OpenRouter Error]", e);
+        } finally {
+           pendingTextReplies.delete(leadId);
+        }
+      }, 12000); // 12 seconds debounce
+
+      pendingTextReplies.set(leadId, debounceTimer);
+      return NextResponse.json({ success: true, action: 'text_queued_for_debounce' });
   } catch (error) {
     console.error('[FATAL CRASH] WAHA Webhook error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
