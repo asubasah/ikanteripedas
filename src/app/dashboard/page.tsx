@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Lead {
   id: number;
@@ -23,6 +24,7 @@ interface ChatMessage {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -30,8 +32,9 @@ export default function DashboardPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [salesContactNumber, setSalesContactNumber] = useState('08961722712');
+  const [salesContactNumber, setSalesContactNumber] = useState('08113438800');
   const [aiSystemPrompt, setAiSystemPrompt] = useState('');
+  const [aiModel, setAiModel] = useState('x-ai/grok-4.1-fast');
   const [savingSettings, setSavingSettings] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -53,6 +56,9 @@ export default function DashboardPage() {
       if (data.ai_system_prompt) {
         setAiSystemPrompt(data.ai_system_prompt);
       }
+      if (data.ai_model) {
+        setAiModel(data.ai_model);
+      }
     } catch (err) {
       console.error('Failed to load settings', err);
     }
@@ -65,7 +71,7 @@ export default function DashboardPage() {
       await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ salesContactNumber, aiSystemPrompt }),
+        body: JSON.stringify({ salesContactNumber, aiSystemPrompt, aiModel }),
       });
       setIsSettingsOpen(false);
     } catch (err) {
@@ -140,6 +146,16 @@ export default function DashboardPage() {
       console.error(err);
     } finally {
       setChatLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setIsAuthenticated(false);
+      router.push('/dashboard'); // This will trigger the auth guard/redirect
+    } catch (err) {
+      console.error('Logout failed', err);
     }
   };
 
@@ -310,7 +326,15 @@ export default function DashboardPage() {
             <h1 className="text-sm font-bold text-white tracking-tight">MK Metalindo — Chat Console</h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1.5 bg-white/5 border border-border-industrial hover:bg-maroon/20 hover:border-maroon rounded-lg text-xs font-bold text-white/50 hover:text-white transition-all flex items-center gap-2"
+              title="Keluar dari Console"
+            >
+              <span>Logout</span>
+              <span>🚪</span>
+            </button>
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest hidden sm:inline-block">
               {leads.length} Lead{leads.length !== 1 ? 's' : ''}
             </span>
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -526,7 +550,7 @@ export default function DashboardPage() {
                     required
                     value={salesContactNumber}
                     onChange={(e) => setSalesContactNumber(e.target.value)}
-                    placeholder="Contoh: 08961722712"
+                    placeholder="Contoh: 08113438800"
                     className="w-full bg-charcoal border border-border-industrial rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-maroon transition-colors"
                   />
                   <p className="text-[10px] text-amber mt-2">
@@ -549,11 +573,24 @@ export default function DashboardPage() {
                     placeholder="Contoh: Selama tanggal 1-5 April workshop libur, tapi pengerjaan dimulai kembali tanggal 6 April..."
                     className="w-full bg-charcoal border border-border-industrial rounded-lg px-4 py-3 text-white text-xs focus:outline-none focus:border-maroon transition-colors resize-none font-sans leading-relaxed"
                   />
-                  <div className="mt-2 p-2 bg-amber/5 border border-amber/10 rounded-md">
-                    <p className="text-[9px] text-amber/60 leading-tight">
-                      <strong>💡 Tips:</strong> Tuliskan poin-poin penting saja. AI akan merangkai kalimatnya sendiri agar tetap natural.
-                    </p>
                   </div>
+                
+                <div className="pt-4 border-t border-white/5">
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-widest mb-2">
+                    🎯 AI Agent Model (OpenRouter Slug)
+                  </label>
+                  <p className="text-[10px] text-white/40 mb-3 leading-relaxed">
+                    Masukkan ID model dari OpenRouter (Contoh: <code className="text-amber">x-ai/grok-4.1-fast</code> atau <code className="text-amber">google/gemini-2.0-flash-001</code>). 
+                    Pastikan API Key mendukung model tersebut.
+                  </p>
+                  <input
+                    type="text"
+                    required
+                    value={aiModel}
+                    onChange={(e) => setAiModel(e.target.value)}
+                    placeholder="e.g. x-ai/grok-4.1-fast"
+                    className="w-full bg-charcoal border border-border-industrial rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-maroon transition-colors"
+                  />
                 </div>
               </div>
 

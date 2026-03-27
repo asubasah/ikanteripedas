@@ -62,7 +62,7 @@ export async function POST(req: Request) {
   try {
     // Fetch dynamic sales contact
     const settingsRes = await query(`SELECT setting_value FROM app_settings WHERE setting_key = 'sales_contact_number'`);
-    const dynamicSalesContact = settingsRes.rows.length > 0 ? settingsRes.rows[0].setting_value : '08961722712';
+    const dynamicSalesContact = settingsRes.rows.length > 0 ? settingsRes.rows[0].setting_value : '08113438800';
 
     const { message, sessionId, userName, phoneNumber, companyName } = await req.json();
 
@@ -103,11 +103,11 @@ export async function POST(req: Request) {
       await query(`UPDATE leads_mk SET nomor_wa = $1, status_crm = 'Interested' WHERE id = $2`, [cleanMsg, leadId]);
       
       // Notify Sales PIC
-      const WAHA_URL = 'http://127.0.0.1:3017';
+      const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3007';
       const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
       
       const salesRes = await query(`SELECT setting_value FROM app_settings WHERE setting_key = 'sales_contact_number'`);
-      const salesPIC = salesRes.rows.length > 0 ? salesRes.rows[0].setting_value : '08961722712';
+      const salesPIC = salesRes.rows.length > 0 ? salesRes.rows[0].setting_value : '08113438800';
       const targetJid = salesPIC.startsWith('0') ? '62' + salesPIC.substring(1) + '@c.us' : salesPIC + '@c.us';
 
       await fetch(`${WAHA_URL}/api/sendText`, {

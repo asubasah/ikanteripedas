@@ -18,8 +18,8 @@ export async function POST() {
       [JSON.stringify({ code: otp, expiresAt })]
     );
 
-    // Send OTP via WAHA / Baileys Custom Adapter
-    const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3017';
+    // Send OTP via WAHA
+    const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3007';
     const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
     const targetJid = salesPIC.startsWith('0') ? '62' + salesPIC.substring(1) + '@c.us' : salesPIC + '@c.us';
 

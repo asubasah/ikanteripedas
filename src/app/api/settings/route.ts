@@ -18,10 +18,13 @@ export async function GET() {
     
     // Default fallbacks if not found
     if (!settings['sales_contact_number']) {
-      settings['sales_contact_number'] = '08961722712';
+      settings['sales_contact_number'] = '08113438800';
     }
     if (!settings['ai_system_prompt']) {
       settings['ai_system_prompt'] = '';
+    }
+    if (!settings['ai_model']) {
+      settings['ai_model'] = process.env.AI_MODEL || 'google/gemini-2.0-flash-001';
     }
     
     return NextResponse.json(settings);
@@ -39,7 +42,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { salesContactNumber, aiSystemPrompt } = await req.json();
+    const { salesContactNumber, aiSystemPrompt, aiModel } = await req.json();
     
     if (salesContactNumber) {
       await query(
@@ -56,8 +59,16 @@ export async function POST(req: Request) {
         [aiSystemPrompt]
       );
     }
+
+    if (aiModel !== undefined) {
+      await query(
+        `INSERT INTO app_settings (setting_key, setting_value) VALUES ('ai_model', $1) 
+         ON CONFLICT (setting_key) DO UPDATE SET setting_value = $1`,
+        [aiModel]
+      );
+    }
     
-    return NextResponse.json({ success: true, salesContactNumber, aiSystemPrompt });
+    return NextResponse.json({ success: true, salesContactNumber, aiSystemPrompt, aiModel });
   } catch (error) {
     console.error('Settings POST error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

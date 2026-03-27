@@ -64,8 +64,9 @@ export async function POST(req: Request) {
       return acc;
     }, {});
 
-    const dynamicSalesContact = settings['sales_contact_number'] || '08961722712';
+    const dynamicSalesContact = settings['sales_contact_number'] || '08113438800';
     const dynamicAiPrompt = settings['ai_system_prompt'] || '';
+    const dynamicAiModel = settings['ai_model'] || process.env.AI_MODEL || 'google/gemini-2.0-flash-001';
     
     // Format to WAHA standard (628...)
     let dynamicContactWaha = dynamicSalesContact.startsWith('0') 
@@ -104,15 +105,9 @@ export async function POST(req: Request) {
 
     const { user_id: customerNumber, reply_jid: targetJid, user_name: userName, message: text, type: parsedType, hasMedia, source_field, raw_sender } = parsed;
     
-    // 🔥 USE BAILEYS PRE-RESOLVED DATA
-    // cleanPhone = real Indonesian phone (08xxx), rawRemoteJid = original WA address for reply routing
-    let cleanPhone = body.payload?.cleanPhone || customerNumber;
-    if (cleanPhone.startsWith('628')) {
-      cleanPhone = '0' + cleanPhone.substring(2);
-    } else if (cleanPhone.startsWith('62')) {
-      cleanPhone = '0' + cleanPhone.substring(2);
-    }
-    const rawRemoteJid = body.payload?.rawRemoteJid || targetJid;
+    // Standardize phone/JID from WAHA payload
+    let cleanPhone = customerNumber;
+    let rawRemoteJid = targetJid;
     const replyJid = rawRemoteJid; // Always reply to the RAW jid, not the resolved one
     
     const sessionId = `waha-${cleanPhone}`;
@@ -183,10 +178,9 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: true, action: 'ai_is_paused' });
       }
 
-      // 🚨 Fix 31.6s timeout: Force IPv4 loopback because Node 18+ resolves localhost to ::1
-      const WAHA_URL = 'http://127.0.0.1:3017'; 
+      // 🚨 Standard WAHA (Docker)
+      const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3007'; 
       const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
-      const CONTACT_SALES = dynamicContactWaha;
 
       // --- 2.5: INTERCEPT MEDIA / FILES TO SAVE TOKENS ---
       if (parsedType === 'media') {
@@ -400,7 +394,7 @@ export async function POST(req: Request) {
                   'X-Title': 'MK Metalindo WA Chat'
                 },
                 body: JSON.stringify({
-                  model: process.env.AI_MODEL || "google/gemini-2.0-flash-001",
+                  model: dynamicAiModel,
                   messages: [
                     { role: 'system', content: fullPrompt },
                     ...conversationHistory

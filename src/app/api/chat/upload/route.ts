@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     // 1. Get Sales Contact
     const settingsRes = await query(`SELECT setting_value FROM app_settings WHERE setting_key = 'sales_contact_number'`);
-    const salesContact = settingsRes.rows.length > 0 ? settingsRes.rows[0].setting_value : '08961722712';
+    const salesContact = settingsRes.rows.length > 0 ? settingsRes.rows[0].setting_value : '08113438800';
     
     // Format to WAHA standard
     const targetJid = salesContact.startsWith('0') 

@@ -1,29 +1,33 @@
 import { normalizeAndValidate } from "./phone";
 
 async function resolveLidToPhone(lid: string): Promise<string | null> {
-  const BAILEYS_URL = 'http://127.0.0.1:3017';
+  const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3007';
+  const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
   const encodedLid = encodeURIComponent(lid);
   
-  // 🎯 Use our new Baileys/WAHA Meta LID Decryption Endpoint
-  const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
   try {
-    const res = await fetch(`${BAILEYS_URL}/api/contacts/${encodedLid}`, {
+    // 🎯 Use WAHA Native Contact API to resolve LIDs
+    const res = await fetch(`${WAHA_URL}/api/default/contacts/${encodedLid}`, {
       headers: {
         'Accept': 'application/json',
         'X-Api-Key': WAHA_API_KEY
       }
     });
+
     if (res.ok) {
       const data = await res.json();
-      const realId = data.phone?.split('@')[0];
-      if (realId) {
+      // WAHA returns real ID/Number in 'id' or 'number' field if resolved
+      // Some engines return { id: "628...", name: "..." }
+      const realId = (data.number || data.id || '').split('@')[0];
+      
+      if (realId && realId.length >= 10 && !realId.includes('lid')) {
         let phone = realId.replace(/\D/g, "");
-        console.log(`✅ LID RESOLVED via Baileys Native API: ${lid} -> ${phone}`);
+        console.log(`✅ LID RESOLVED via WAHA Native: ${lid} -> ${phone}`);
         return phone;
       }
     }
   } catch (e: any) {
-    console.warn(`LID Contact resolve attempt failed:`, e.message);
+    console.warn(`LID WAHA resolve failed:`, e.message);
   }
 
   return null;
@@ -41,7 +45,7 @@ export async function extractPhoneDeep(body: any, payload: any): Promise<{ phone
   if (payload.from) candidates.push({ raw: payload.from, source: 'from' });
   if (payload.to) candidates.push({ raw: payload.to, source: 'to' });
 
-  // 🔥 2. ITERATE, RESOLVE, AND CAPTURE
+  // 🔥 2. ITERATE AND CAPTURE
   let bestIdSoFar: string | null = null;
   let bestSourceSoFar: string = 'unknown';
 
@@ -70,8 +74,6 @@ export async function extractPhoneDeep(body: any, payload: any): Promise<{ phone
         if (phone.startsWith("08")) return { phone: phone, source: c.source + "_resolved" };
         return { phone: phone, source: c.source + "_resolved" };
       }
-      // If resolution fails, keep iterating candidates
-      continue;
     }
 
     // 🔄 STANDARDIZASI NOMOR BIASA (08 / 62)
@@ -85,7 +87,7 @@ export async function extractPhoneDeep(body: any, payload: any): Promise<{ phone
     if (p.length >= 8 && p.length <= 15) return { phone: p, source: c.source };
   }
 
-  // 🛟 NO SKIP POLICY: Jika semua gagal tapi kita punya ID (meskipun LID), JANGAN DI-DROP!
+  // 🛟 NO SKIP POLICY: Jika semua gagal tapi kita punya ID, JANGAN DI-DROP!
   if (bestIdSoFar) {
     console.log(`⚠️ FALLBACK MODE: Using raw ID as identifier (${bestSourceSoFar}): ${bestIdSoFar}`);
     return { phone: bestIdSoFar, source: bestSourceSoFar + "_fallback" };
@@ -133,6 +135,16 @@ export async function parseWebhook(body: any) {
     }
 
     const pushName = payload.pushName || payload._data?.notifyName || (payload._data?.sender?.pushname) || 'Customer WA';
+
+    // 🧠 IMPROVED: QUOTE/REPLY SUPPORT
+    // WAHA usually provides quotedMsg in payload
+    const quoted = payload.quotedMsg || payload._data?.quotedMsg;
+    if (quoted && (quoted.body || quoted.caption)) {
+      const quotedBody = quoted.body || quoted.caption || '';
+      const quotedAuthor = quoted.pushName || 'System/Admin';
+      // Prepend the quote context to help the AI understand what is being replied to
+      messageText = `[REPLY TO "${quotedAuthor}": "${quotedBody.substring(0, 100)}${quotedBody.length > 100 ? '...' : ''}"] ${messageText}`;
+    }
 
     return {
       valid: true,
