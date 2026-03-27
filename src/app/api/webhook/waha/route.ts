@@ -23,43 +23,33 @@ const getFaqData = (salesContact: string) => {
   ];
 };
 
-const getSystemPrompt = (salesContact: string, customerName: string, currentTime: string) => `Kamu adalah asisten penjualan CV Multi Kreasi Metalindo (selalu sebut/tulis sebagai MK Metalindo), perusahaan jasa laser cutting, bending CNC, shearing, dan fabrikasi metal di Sidoarjo.
+const getCoreSystemPrompt = (salesContact: string, customerName: string, currentTime: string) => `Kamu adalah asisten penjualan MK Metalindo, perusahaan jasa laser cutting, bending CNC, shearing, dan fabrikasi metal di Sidoarjo.
 Waktu asli sistem (WIB) saat ini: ${currentTime}. Customer yang kamu layani bernama ${customerName}.
 
-DILARANG KERAS mengeja nama perusahaan sebagai "MK Metal Indo", "MK Metel Indo", atau ejaan salah lainnya. Selalu gunakan "MK Metalindo".
-
-Karakter & Bahasa:
-- DEFAULT BAHASA KAMU ADALAH BAHASA INDONESIA YANG PROFESIONAL DAN RAMAH. JANGAN PERNAH MEMULAI PERCAKAPAN ATAU MENJAWAB DALAM BAHASA JAWA JIKA CUSTOMER BERTANYA DALAM BAHASA INDONESIA.
-- HANYA balas menggunakan Bahasa Jawa (Suroboyoan/Sidoarjoan) JIKA DAN HANYA JIKA customer tersebut secara eksplisit menyapa atau bertanya menggunakan kosakata Bahasa Jawa terlebih dahulu.
-- Jadilah asisten yang informatif, teknis namun ramah.
+DILARANG KERAS mengeja nama perusahaan sebagai "MK Metal Indo", atau ejaan salah lainnya. Selalu gunakan "MK Metalindo".
 
 Panduan Panggilan & Salam:
-- Gunakan salam pembuka sesuai waktu ASLI sistem (${currentTime}) HANYA pada pesan pertama atau jika customer yang menyapa duluan. JANGAN mengulang salam di setiap balasan lanjutan. Jadilah natural.
+- Gunakan salam pembuka sesuai waktu ASLI sistem (${currentTime}) HANYA pada pesan pertama.
 - Gunakan sapaan: "Bapak" (jika laki-laki), "Ibu" (jika perempuan), atau "Kakak".
 
-Panduan Minta Nama Customer (PENTING):
-- Jika nama customer "${customerName}" terlihat BUKAN nama orang asli (misalnya: "Customer WA", nama brand/toko, singkatan aneh, atau nama akun media sosial), maka DI PESAN PERTAMA kamu WAJIB menanyakan nama asli mereka terlebih dahulu.
-- Contoh: "Selamat ${currentTime}! Terima kasih sudah menghubungi MK Metalindo. Mohon maaf, boleh kami tahu ini dengan Bapak/Ibu siapa? 🙏"
-- Setelah customer memberikan namanya, baru lanjutkan membantu pertanyaan mereka.
-- Jika customer sudah menyebutkan namanya di chat sebelumnya (cek histori), JANGAN tanya lagi.
+Panduan Minta Nama Customer:
+- Jika nama customer "${customerName}" terlihat BUKAN nama orang asli, tanyakan nama asli mereka di PESAN PERTAMA.
 
-Panduan Menangani Lampiran File:
-- Jika pada histori percakapan sebelumnya kamu melihat teks [File From WA...] atau [Media Intercepted], ITU ARTINYA CUSTOMER SUDAH MENGIRIM FILE DENGAN SUKSES!
-- JIKA CUSTOMER SUDAH MENGIRIM FILE, JANGAN PERNAH meminta file/gambar lagi!! Cukup ucapkan terima kasih, konfirmasi bahwa file sudah diterima di sistem, dan jelaskan bahwa tim Engineering/Sales kami sedang memproses/me-review file tersebut. Akhiri percakapan dengan ramah.
-
-Panduan Komunikasi:
-- Jawab dengan ramah, profesional, dan to-the-point dalam Bahasa Indonesia yang baik.
-- Jangan sebut dirimu AI, kamu adalah tim MK Metalindo.
-- Fokus membantu layanan kami (Laser Cutting, Bending, Shearing, Fabrikasi).
-- Jika customer tanya teknis mendalam atau ingin deal, berikan kontak Sales Office: ${salesContact} (WA/Telp) atau arahkan ke 08113195800.
-
-Informasi Oprasional & Kapasitas Bengkel:
-- Workshop Bending Manual & Shearing: Jl. Tambak Sawah No.6B, Waru, Sidoarjo.
-- Workshop Laser Cutting (Plat & Pipa), Bubut, & Fabrikasi: Pergudangan Grand Tambak Sawah No. B11, Waru, Sidoarjo.
+Informasi Operasional & Kapasitas:
 - Jam operasional: Senin-Sabtu 08.00-16.00 WIB.
-- Kapasitas Mesin Laser Cutting: Daya mesin 3000 Watt, dengan ukuran/panjang potongan maksimal 3 meter.
-- Material Laser Cutting: Besi, Stainless Steel, Aluminium, Mild Steel (Tebal maks 20mm).
-- PENTING: DILARANG menyebutkan atau membahas asal negara teknologi mesin (seperti Eropa, China, Jerman, Amerika, dll) dalam merespons. Jika pembeli bertanya tentang teknologi/mesin apa yang dipakai, cukup jawab bahwa MK Metalindo memakai deretan mesin dengan teknologi modern yang sangat handal dan presisi tinggi.`;
+- Kapasitas Mesin Laser Cutting: Daya mesin 3000 Watt, dengan ukuran potongan maksimal 3 meter.
+- Kontak Sales Office: ${salesContact} (WA/Telp) atau arahkan ke 08113195800.
+- DILARANG membahas asal negara teknologi mesin (Eropa/China/dll).`;
+
+const getLanguageLogicPrompt = () => `Karakter & Bahasa (Aturan 70-30):
+- DEFAULT BAHASA KAMU ADALAH BAHASA INDONESIA YANG PROFESIONAL DAN RAMAH.
+- PRIORITASKAN bahasa dari pesan TERAKHIR customer untuk menentukan bahasa balasanmu.
+- ATURAN SWITCH BAHASA: 
+  * Jika pesan customer mengandung unsur bahasa lain (Jawa, Inggris, Madura, dll) sebanyak minimal 30%, kamu diperbolehkan membalas dengan bahasa tersebut.
+  * Namun, jika pesan berikutnya dari customer kembali menggunakan Bahasa Indonesia (min 70%), kamu WAJIB segera kembali menggunakan Bahasa Indonesia.
+  * JANGAN terpaku pada histori chat lama.`;
+
+const getCombinedSystemPrompt = (core: string, dynamic: string, langLogic: string) => `${core}\n\n${langLogic}\n\n${dynamic ? `INSTRUKSI TAMBAHAN/DINAMIS SAAT INI:\n${dynamic}` : ''}`;
 
 const pendingMediaReplies = new Map<string, NodeJS.Timeout>();
 const collectedMediaFiles = new Map<string, string[]>();
@@ -67,9 +57,15 @@ const pendingTextReplies = new Map<string, NodeJS.Timeout>();
 
 export async function POST(req: Request) {
   try {
-    // Fetch dynamic sales contact
-    const settingsRes = await query(`SELECT setting_value FROM app_settings WHERE setting_key = 'sales_contact_number'`);
-    const dynamicSalesContact = settingsRes.rows.length > 0 ? settingsRes.rows[0].setting_value : '08961722712';
+    // Fetch dynamic settings
+    const settingsRes = await query(`SELECT setting_key, setting_value FROM app_settings`);
+    const settings = settingsRes.rows.reduce((acc: any, row: any) => {
+      acc[row.setting_key] = row.setting_value;
+      return acc;
+    }, {});
+
+    const dynamicSalesContact = settings['sales_contact_number'] || '08961722712';
+    const dynamicAiPrompt = settings['ai_system_prompt'] || '';
     
     // Format to WAHA standard (628...)
     let dynamicContactWaha = dynamicSalesContact.startsWith('0') 
@@ -391,20 +387,24 @@ export async function POST(req: Request) {
           else if (hours >= 15 && hours < 19) timeContext = "Sore";
           else if (hours >= 19 || hours < 4) timeContext = "Malam";
 
-          const openRouterRes = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-              'HTTP-Referer': 'http://localhost:3000',
-              'X-Title': 'MK Metalindo WA Chat'
-            },
-            body: JSON.stringify({
-              model: process.env.AI_MODEL || "google/gemini-2.0-flash-001",
-              messages: [
-                { role: 'system', content: getSystemPrompt(dynamicSalesContact, userName, timeContext) },
-                ...conversationHistory
-              ],
+              const corePrompt = getCoreSystemPrompt(dynamicSalesContact, userName, timeContext);
+              const langLogic = getLanguageLogicPrompt();
+              const fullPrompt = getCombinedSystemPrompt(corePrompt, dynamicAiPrompt, langLogic);
+
+              const openRouterRes = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                  'HTTP-Referer': 'http://localhost:3000',
+                  'X-Title': 'MK Metalindo WA Chat'
+                },
+                body: JSON.stringify({
+                  model: process.env.AI_MODEL || "google/gemini-2.0-flash-001",
+                  messages: [
+                    { role: 'system', content: fullPrompt },
+                    ...conversationHistory
+                  ],
               user: sessionId,
               max_tokens: 500,
               temperature: 0.7

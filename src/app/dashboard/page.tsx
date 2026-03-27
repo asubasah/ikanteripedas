@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [salesContactNumber, setSalesContactNumber] = useState('08961722712');
+  const [aiSystemPrompt, setAiSystemPrompt] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +50,9 @@ export default function DashboardPage() {
       if (data.sales_contact_number) {
         setSalesContactNumber(data.sales_contact_number);
       }
+      if (data.ai_system_prompt) {
+        setAiSystemPrompt(data.ai_system_prompt);
+      }
     } catch (err) {
       console.error('Failed to load settings', err);
     }
@@ -61,7 +65,7 @@ export default function DashboardPage() {
       await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ salesContactNumber }),
+        body: JSON.stringify({ salesContactNumber, aiSystemPrompt }),
       });
       setIsSettingsOpen(false);
     } catch (err) {
@@ -528,6 +532,28 @@ export default function DashboardPage() {
                   <p className="text-[10px] text-amber mt-2">
                     * Format nomor diawali 08... (Bukan 62).
                   </p>
+                </div>
+
+                <div className="pt-4 border-t border-white/5">
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-widest mb-2">
+                    🤖 AI Intelligence & Custom Instructions
+                  </label>
+                  <p className="text-[10px] text-white/40 mb-3 leading-relaxed">
+                    Gunakan kolom ini untuk mengupdate info dinamis ke AI (Misal: Jadwal Libur, Update Harga, atau Promo). 
+                    AI akan memprioritaskan instruksi ini di atas karakter aslinya.
+                  </p>
+                  <textarea
+                    rows={6}
+                    value={aiSystemPrompt}
+                    onChange={(e) => setAiSystemPrompt(e.target.value)}
+                    placeholder="Contoh: Selama tanggal 1-5 April workshop libur, tapi pengerjaan dimulai kembali tanggal 6 April..."
+                    className="w-full bg-charcoal border border-border-industrial rounded-lg px-4 py-3 text-white text-xs focus:outline-none focus:border-maroon transition-colors resize-none font-sans leading-relaxed"
+                  />
+                  <div className="mt-2 p-2 bg-amber/5 border border-amber/10 rounded-md">
+                    <p className="text-[9px] text-amber/60 leading-tight">
+                      <strong>💡 Tips:</strong> Tuliskan poin-poin penting saja. AI akan merangkai kalimatnya sendiri agar tetap natural.
+                    </p>
+                  </div>
                 </div>
               </div>
 

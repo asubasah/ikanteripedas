@@ -16,9 +16,12 @@ export async function GET() {
       return acc;
     }, {});
     
-    // Default fallback if not found
+    // Default fallbacks if not found
     if (!settings['sales_contact_number']) {
       settings['sales_contact_number'] = '08961722712';
+    }
+    if (!settings['ai_system_prompt']) {
+      settings['ai_system_prompt'] = '';
     }
     
     return NextResponse.json(settings);
@@ -36,7 +39,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { salesContactNumber } = await req.json();
+    const { salesContactNumber, aiSystemPrompt } = await req.json();
     
     if (salesContactNumber) {
       await query(
@@ -45,8 +48,16 @@ export async function POST(req: Request) {
         [salesContactNumber]
       );
     }
+
+    if (aiSystemPrompt !== undefined) {
+      await query(
+        `INSERT INTO app_settings (setting_key, setting_value) VALUES ('ai_system_prompt', $1) 
+         ON CONFLICT (setting_key) DO UPDATE SET setting_value = $1`,
+        [aiSystemPrompt]
+      );
+    }
     
-    return NextResponse.json({ success: true, salesContactNumber });
+    return NextResponse.json({ success: true, salesContactNumber, aiSystemPrompt });
   } catch (error) {
     console.error('Settings POST error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
