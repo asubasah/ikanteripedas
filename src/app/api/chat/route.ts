@@ -166,27 +166,31 @@ export async function POST(req: Request) {
         }));
 
         const now = new Date();
-        const hours = (now.getUTCHours() + 7) % 24; // Convert UTC to WIB
-        let timeContext = "Pagi";
-        if (hours >= 11 && hours < 15) timeContext = "Siang";
-        else if (hours >= 15 && hours < 19) timeContext = "Sore";
-        else if (hours >= 19 || hours < 4) timeContext = "Malam";
+        const dateContext = now.toLocaleString("id-ID", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Jakarta"
+        });
 
         const openRouterRes = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            'HTTP-Referer': 'http://localhost:3000', // Optional: your site URL
-            'X-Title': 'MK Metalindo Web Chat' // Optional: your site name
-          },
-          body: JSON.stringify({
-          model: process.env.AI_MODEL || "google/gemini-2.0-flash-001",
-          messages: [
-            { role: 'system', content: getSystemPrompt(dynamicSalesContact, userName, timeContext) },
-            ...conversationHistory,
-            { role: 'user', content: message }
-          ],
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'HTTP-Referer': 'http://localhost:3000', // Optional: your site URL
+                'X-Title': 'MK Metalindo Web Chat' // Optional: your site name
+            },
+            body: JSON.stringify({
+                model: process.env.AI_MODEL || "google/gemini-2.0-flash-001",
+                messages: [
+                    { role: 'system', content: getSystemPrompt(dynamicSalesContact, userName, dateContext) },
+                    ...conversationHistory,
+                    { role: 'user', content: message }
+                ],
             user: sessionId,
             max_tokens: 500,
             temperature: 0.7

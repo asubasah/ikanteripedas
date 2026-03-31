@@ -69,9 +69,12 @@ export async function POST(req: Request) {
     const dynamicAiModel = settings['ai_model'] || process.env.AI_MODEL || 'google/gemini-2.0-flash-001';
     
     // Format to WAHA standard (628...)
+    const WAHA_SESSION_NAME = process.env.WAHA_SESSION_NAME || 'default';
+    
+    // Format to WAHA standard (628...)
     let dynamicContactWaha = dynamicSalesContact.startsWith('0') 
         ? '62' + dynamicSalesContact.substring(1) + '@c.us' 
-        : dynamicSalesContact + '@c.us';
+        : dynamicSalesContact + (dynamicSalesContact.includes('@') ? '' : '@c.us');
 
     const body = await req.json();
     console.log('WAHA Webhook received:', JSON.stringify(body, null, 2));
@@ -108,7 +111,8 @@ export async function POST(req: Request) {
     // Standardize phone/JID from WAHA payload
     let cleanPhone = customerNumber;
     let rawRemoteJid = targetJid;
-    const replyJid = rawRemoteJid; // Always reply to the RAW jid, not the resolved one
+    // Normalize JID to @c.us for reliable delivery on some WAHA engines
+    const replyJid = rawRemoteJid.includes('@') ? rawRemoteJid.split('@')[0] + '@c.us' : rawRemoteJid + '@c.us';
     
     const sessionId = `waha-${cleanPhone}`;
 
@@ -255,11 +259,12 @@ export async function POST(req: Request) {
              const replyText = `Terima kasih Kakak ${userName}, file/lampiran sudah kami terima dengan baik. Apakah file ini saja atau kah ada file lain atau tambahan info spesifikasi? Jika tidak, kami akan teruskan ke tim engineer MK Metalindo. 🙏`;
              
              // Reply to user
-             await fetch(`${WAHA_URL}/api/sendText`, {
+             const resUser = await fetch(`${WAHA_URL}/api/sendText`, {
                method: 'POST',
                headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-               body: JSON.stringify({ chatId: replyJid, text: replyText, session: 'default' })
+               body: JSON.stringify({ chatId: replyJid, text: replyText, session: WAHA_SESSION_NAME })
              });
+             console.log(`[WAHA] Reply to user status: ${resUser.status} ${resUser.statusText}`);
 
              // Notify Sales PIC
              const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/dashboard`;
@@ -277,11 +282,12 @@ export async function POST(req: Request) {
              ];
              const alertSales = alertParts.join('\n');
 
-             await fetch(`${WAHA_URL}/api/sendText`, {
+             const resSales = await fetch(`${WAHA_URL}/api/sendText`, {
                method: 'POST',
                headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-               body: JSON.stringify({ chatId: dynamicContactWaha, text: alertSales, session: 'default' })
+               body: JSON.stringify({ chatId: dynamicContactWaha, text: alertSales, session: WAHA_SESSION_NAME })
              });
+             console.log(`[WAHA] Notify Sales status: ${resSales.status} ${resSales.statusText}`);
 
              // Cleanup Memory
              pendingMediaReplies.delete(leadId);
@@ -329,11 +335,12 @@ export async function POST(req: Request) {
         // Decouple from webhook synchronous response
         setTimeout(async () => {
           try {
-            await fetch(`${WAHA_URL}/api/sendText`, {
+            const resFaq = await fetch(`${WAHA_URL}/api/sendText`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-              body: JSON.stringify({ chatId: replyJid, text: matchedFaq.response, session: 'default' })
+              body: JSON.stringify({ chatId: replyJid, text: matchedFaq.response, session: WAHA_SESSION_NAME })
             });
+            console.log(`[WAHA] FAQ Reply status: ${resFaq.status} ${resFaq.statusText}`);
 
             await query(
               `INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) 
@@ -415,7 +422,7 @@ export async function POST(req: Request) {
             setTimeout(async () => {
               try {
                 // 4. Send response via WAHA
-                await fetch(`${WAHA_URL}/api/sendText`, {
+                const resAi = await fetch(`${WAHA_URL}/api/sendText`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -424,10 +431,15 @@ export async function POST(req: Request) {
                   body: JSON.stringify({
                     chatId: replyJid,
                     text: replyText,
-                    session: 'default' 
+                    session: WAHA_SESSION_NAME 
                   })
                 });
-                console.log(`[TRACE 14] AI Message dispatched to Baileys Engine after delay`);
+                console.log(`[WAHA] AI Response status: ${resAi.status} ${resAi.statusText}`);
+                if (!resAi.ok) {
+                  console.error(`[WAHA ERROR] AI content NOT delivered to ${replyJid}:`, await resAi.text());
+                } else {
+                  console.log(`[TRACE 14] AI Message dispatched to Baileys Engine after delay`);
+                }
 
                 // 5. Record outgoing message
                 await query(
@@ -441,15 +453,16 @@ export async function POST(req: Request) {
                   await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
                   
                   // Send notification to Sales via WAHA
-                  await fetch(`${WAHA_URL}/api/sendText`, {
+                  const resAiSales = await fetch(`${WAHA_URL}/api/sendText`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
                     body: JSON.stringify({ 
                       chatId: dynamicContactWaha, 
                       text: `*Lead Handoff AI*: Customer *${userName}* (${customerNumber}) baru saja diarahkan ke Anda oleh AI Agent. Mohon bersiap untuk follow-up.`, 
-                      session: 'default' 
+                      session: WAHA_SESSION_NAME 
                     })
                   });
+                  console.log(`[WAHA] AI Sales Notification status: ${resAiSales.status}`);
                 }
               } catch (e: any) {
                  console.error("[AI Background Task Error]:", e.message);
@@ -467,7 +480,7 @@ export async function POST(req: Request) {
               body: JSON.stringify({
                 chatId: replyJid,
                 text: "Mohon maaf, sistem AI kami sedang mengalami kepadatan respons. Mohon ulangi pertanyaan Anda beberapa saat lagi, atau hubungi Sales Tech kami di 08113195800.",
-                session: 'default' 
+                session: WAHA_SESSION_NAME 
               })
             });
           }
@@ -476,7 +489,7 @@ export async function POST(req: Request) {
         } finally {
            pendingTextReplies.delete(leadId);
         }
-      }, 12000); // 12 seconds debounce
+      }, 8000); // 8 seconds debounce
 
       pendingTextReplies.set(leadId, debounceTimer);
       return NextResponse.json({ success: true, action: 'text_queued_for_debounce' });
