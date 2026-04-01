@@ -68,29 +68,28 @@ export async function extractPhoneDeep(body: any, payload: any): Promise<{ phone
     // Trigger on ANY non-standard/long ID (>11 digits and not starting with 08 or 62)
     const looksLikeLid = rawId.length > 11 && !rawId.startsWith("62") && !rawId.startsWith("08");
     
-    if (looksLikeLid) {
+    if (looksLikeLid || c.raw.includes("@lid")) {
       const lidFull = c.raw.includes("@") ? c.raw : `${rawId}@lid`;
       const resolved = await resolveLidToPhone(lidFull);
       if (resolved) {
         const phone = resolved.replace(/\D/g, "");
-        // PRIORITAS NORMALISASI ke 08 standard
         if (phone.startsWith("628")) return { phone: "0" + phone.slice(2), source: c.source + "_resolved" };
-        if (phone.startsWith("62")) return { phone: "0" + phone.slice(2), source: c.source + "_resolved" };
-        if (phone.startsWith("8")) return { phone: "0" + phone, source: c.source + "_resolved" };
         if (phone.startsWith("08")) return { phone: phone, source: c.source + "_resolved" };
         return { phone: phone, source: c.source + "_resolved" };
       }
+      // If resolution fails, RETURN RAW LID as is (NO '0' or '08' added)
+      console.log(`⚠️ RESOLVE FAILED: Using raw LID as identifier: ${rawId}`);
+      return { phone: rawId, source: c.source + "_lid_fallback" };
     }
 
-    // 🔄 STANDARDIZASI NOMOR BIASA (08 / 62)
+    // 🔄 STANDARDIZASI NOMOR BIASA (Hanya jika bukan LID)
     let p = rawId;
     if (p.startsWith("628")) return { phone: "0" + p.slice(2), source: c.source };
     if (p.startsWith("62")) return { phone: "0" + p.slice(2), source: c.source };
     if (p.startsWith("08")) return { phone: p, source: c.source };
-    if (p.startsWith("8")) return { phone: "0" + p, source: c.source };
+    if (p.startsWith("8") && p.length <= 13) return { phone: "0" + p, source: c.source };
     
-    // If it looks like a normal but foreign number (short/long), keep it for now
-    if (p.length >= 8 && p.length <= 15) return { phone: p, source: c.source };
+    return { phone: p, source: c.source };
   }
 
   // 🛟 NO SKIP POLICY: Jika semua gagal tapi kita punya ID, JANGAN DI-DROP!
