@@ -363,7 +363,7 @@ export async function POST(req: Request) {
         console.log(`[TRACE 11.5] Cleared previous debounce timer for ${leadId}.`);
       }
 
-      console.log(`[TRACE 12] Waiting 12 seconds to batch messages for ${leadId}...`);
+      console.log(`[TRACE 12] Waiting 4 seconds to batch messages for ${leadId}...`);
       
       const debounceTimer = setTimeout(async () => {
         try {
@@ -490,7 +490,7 @@ export async function POST(req: Request) {
         } finally {
            pendingTextReplies.delete(leadId);
         }
-      }, 8000); // 8 seconds debounce
+      }, 4000); // 4 seconds debounce
 
       pendingTextReplies.set(leadId, debounceTimer);
       return NextResponse.json({ success: true, action: 'text_queued_for_debounce' });
