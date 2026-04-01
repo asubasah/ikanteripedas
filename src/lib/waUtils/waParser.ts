@@ -1,10 +1,12 @@
 import { normalizeAndValidate } from "./phone";
 
 async function resolveLidToPhone(lid: string): Promise<string | null> {
-  const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3007';
+  const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3017';
   const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
   const encodedLid = encodeURIComponent(lid);
   
+  console.log(`[LID DEBUG] Attempting to resolve: ${lid} via ${WAHA_URL}`);
+
   try {
     // 🎯 Use WAHA Native Contact API to resolve LIDs
     const res = await fetch(`${WAHA_URL}/api/default/contacts/${encodedLid}`, {
@@ -17,17 +19,21 @@ async function resolveLidToPhone(lid: string): Promise<string | null> {
     if (res.ok) {
       const data = await res.json();
       // WAHA returns real ID/Number in 'id' or 'number' field if resolved
-      // Some engines return { id: "628...", name: "..." }
       const realId = (data.number || data.id || '').split('@')[0];
       
       if (realId && realId.length >= 10 && !realId.includes('lid')) {
         let phone = realId.replace(/\D/g, "");
         console.log(`✅ LID RESOLVED via WAHA Native: ${lid} -> ${phone}`);
         return phone;
+      } else {
+        console.warn(`[LID WARNING] WAHA returned data but no real ID found:`, JSON.stringify(data));
       }
+    } else {
+      const errText = await res.text();
+      console.warn(`[LID ERROR] WAHA returned status ${res.status}: ${errText}`);
     }
   } catch (e: any) {
-    console.warn(`LID WAHA resolve failed:`, e.message);
+    console.warn(`[LID CRITICAL] Connection to WAHA failed during resolve:`, e.message);
   }
 
   return null;
