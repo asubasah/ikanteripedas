@@ -113,7 +113,7 @@ export async function POST(req: Request) {
     let cleanPhone = customerNumber;
     let rawRemoteJid = targetJid;
     // Normalize JID to @c.us for reliable delivery on some WAHA engines
-    const replyJid = rawRemoteJid.includes('@') ? rawRemoteJid.split('@')[0] + '@c.us' : rawRemoteJid + '@c.us';
+    const replyJid = rawRemoteJid;
     
     const sessionId = `waha-${cleanPhone}`;
 
