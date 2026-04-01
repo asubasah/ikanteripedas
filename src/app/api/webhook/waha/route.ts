@@ -77,7 +77,8 @@ export async function POST(req: Request) {
         : dynamicSalesContact + (dynamicSalesContact.includes('@') ? '' : '@c.us');
 
     const body = await req.json();
-    console.log('WAHA Webhook received:', JSON.stringify(body, null, 2));
+    console.log('--- RAW PAYLOAD ---', JSON.stringify(body, null, 2));
+    console.log('WAHA Webhook received summary:', body.event, body.session);
 
     // 1. Triage & Parse via waParser
     const parsed = await parseWebhook(body);
