@@ -68,8 +68,6 @@ export default function CRMDashboard() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [maskedTarget, setMaskedTarget] = useState('');
-  const [scraperModal, setScraperModal] = useState(false);
-  const [customKwText, setCustomKwText] = useState("[\n  {\"keyword\": \"Karoseri Surabaya\", \"kategori\": \"Otomotif & Karoseri\"}\n]");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
