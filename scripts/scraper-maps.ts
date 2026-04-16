@@ -134,26 +134,53 @@ async function scrapeMaps() {
             const koordinat = coordsMatch ? `${coordsMatch[1]}, ${coordsMatch[2]}` : null;
 
             const data = await page.evaluate(`(function() {
-                const nameNode = document.querySelector('h1.fontHeadlineLarge');
-                const ratingNode = document.querySelector('div.F7nice span[aria-hidden="true"]');
-                
-                const getByTooltip = (selectorContent) => {
-                    const btn = document.querySelector('button[data-tooltip*="' + selectorContent + '"]');
-                    return btn ? btn.querySelector('.Io6YTe, .fontBodyMedium')?.innerText?.trim() : null;
-                };
+                // Name: try multiple selectors
+                const nameSelectors = ['h1', 'h1.fontHeadlineLarge', '[role="heading"][aria-level="1"]', '.DUwDvf', '.qBF1Pd'];
+                let name = '';
+                for (const sel of nameSelectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.textContent.trim().length > 2) { name = el.textContent.trim(); break; }
+                }
 
-                const getWebsite = () => {
-                    const as = document.querySelectorAll('a[data-tooltip*="situs web"], a[data-tooltip*="website"]');
-                    return as.length > 0 ? as[0].href : null;
-                };
+                // Rating: look for a star pattern like "4,5"
+                let rating = null;
+                const allSpans = document.querySelectorAll('span');
+                for (const span of allSpans) {
+                    const t = span.textContent.trim();
+                    if (/^[1-5][,.]\\d$/.test(t)) { rating = t; break; }
+                }
 
-                return {
-                    name: nameNode ? nameNode.textContent?.trim() : '',
-                    rating: ratingNode ? ratingNode.textContent?.trim() : null,
-                    address: getByTooltip("Salin alamat") || getByTooltip("Copy address"),
-                    phoneText: getByTooltip("Salin nomor telepon") || getByTooltip("Copy phone number"),
-                    website: getWebsite()
-                };
+                // Address and phone from button list
+                let address = null;
+                let phoneText = null;
+                const buttons = document.querySelectorAll('button.CsEnBe, button[data-item-id]');
+                for (const btn of buttons) {
+                    const label = btn.getAttribute('aria-label') || btn.getAttribute('data-item-id') || '';
+                    const text = btn.querySelector('.Io6YTe, .fontBodyMedium')?.textContent?.trim();
+                    if (!text) continue;
+                    if (label.toLowerCase().includes('address') || label.toLowerCase().includes('alamat') || label.toLowerCase().includes('location')) {
+                        address = text;
+                    } else if (label.toLowerCase().includes('phone') || label.toLowerCase().includes('telepon') || /^[\\d\\s\\(\\)\\-\\+]+$/.test(text)) {
+                        phoneText = text;
+                    }
+                }
+
+                // Fallback: scan all button aria-labels for phone pattern
+                if (!phoneText) {
+                    const allBtns = document.querySelectorAll('button');
+                    for (const btn of allBtns) {
+                        const label = btn.getAttribute('aria-label') || '';
+                        const phoneMatch = label.match(/([\\d\\s\\(\\)\\-\\+]{9,20})/);
+                        if (phoneMatch) { phoneText = phoneMatch[1].trim(); break; }
+                    }
+                }
+
+                // Website link
+                let website = null;
+                const links = document.querySelectorAll('a[data-item-id*="authority"], a[aria-label*="website"], a[aria-label*="situs"]');
+                if (links.length > 0) website = links[0].href;
+
+                return { name, rating, address, phoneText, website };
             })()`);
 
             if (data.name) {
