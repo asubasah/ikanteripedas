@@ -74,8 +74,8 @@ export default function CRMDashboard() {
   const [authError, setAuthError] = useState('');
   const [maskedTarget, setMaskedTarget] = useState('');
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const qs = new URLSearchParams();
       if (filters.kabupaten !== 'Semua') qs.set('kabupaten', filters.kabupaten);
@@ -85,13 +85,15 @@ export default function CRMDashboard() {
       const res = await fetch(`/api/debug/leads/crm?${qs}`);
       if (res.status === 401) {
         setIsAuthenticated(false);
-        setLoading(false);
+        if (!isBackground) setLoading(false);
         return;
       }
       setIsAuthenticated(true);
       if (res.ok) setData(await res.json());
     } catch (err) { console.error(err); }
-    finally { if (isAuthenticated !== false) setLoading(false); }
+    finally { 
+      if (isAuthenticated !== false && !isBackground) setLoading(false); 
+    }
   }, [filters, isAuthenticated]);
 
   const requestOtp = async () => {
@@ -132,6 +134,16 @@ export default function CRMDashboard() {
   };
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Auto-refresh data every 30 seconds
+  useEffect(() => {
+    if (isAuthenticated) {
+      const dbInterval = setInterval(() => {
+        fetchData(true);
+      }, 30000);
+      return () => clearInterval(dbInterval);
+    }
+  }, [fetchData, isAuthenticated]);
 
   useEffect(() => {
     const checkScraper = async () => {
