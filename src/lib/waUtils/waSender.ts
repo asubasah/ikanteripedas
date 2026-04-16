@@ -30,11 +30,15 @@ export async function sendWhatsAppText(to: string, text: string) {
   if (GOWA_URL) {
     try {
       console.log(`[waSender] Attempting GoWA send to ${formattedNumber}`);
+      
+      // GoWA requires @s.whatsapp.net suffix
+      const gowaPhone = `${formattedNumber}@s.whatsapp.net`;
+      
       const res = await fetch(`${GOWA_URL}/send/message`, {
         method: 'POST',
         headers: gowaHeaders,
         body: JSON.stringify({
-          phone: formattedNumber,
+          phone: gowaPhone,
           message: text
         })
       });
