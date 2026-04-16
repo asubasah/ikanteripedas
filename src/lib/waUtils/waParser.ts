@@ -132,9 +132,10 @@ export async function parseWebhook(body: any) {
     if (isGoWa) {
       // GoWA Payload Handling
       const msgData = payload.message || {};
-      messageText = msgData.conversation || msgData.extendedTextMessage?.text || msgData.imageMessage?.caption || msgData.videoMessage?.caption || '';
-      hasMedia = !!(msgData.imageMessage || msgData.videoMessage || msgData.documentMessage || msgData.audioMessage || msgData.stickerMessage);
-      type = hasMedia ? "media" : "text";
+      messageText = payload.body || msgData.conversation || msgData.extendedTextMessage?.text || msgData.imageMessage?.caption || msgData.videoMessage?.caption || '';
+      hasMedia = !!(msgData.imageMessage || msgData.videoMessage || msgData.documentMessage || msgData.audioMessage || msgData.stickerMessage || payload.hasMedia);
+      type = (hasMedia || payload.type === 'image' || payload.type === 'video') ? "media" : "text";
+      pushName = payload.pushName || payload.from_name || 'Customer WA';
     } else {
       // WAHA Payload Handling
       messageText = payload.body || '';
