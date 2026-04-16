@@ -29,8 +29,15 @@ async function resolveLidToPhone(lid: string): Promise<string | null> {
 
   // 🎯 Try GoWA resolve if WAHA fails or isn't used
   try {
+    const GOWA_BASIC_AUTH = process.env.GOWA_BASIC_AUTH;
+    const headers: Record<string, string> = { 'Accept': 'application/json' };
+    
+    if (GOWA_BASIC_AUTH) {
+      headers['Authorization'] = `Basic ${Buffer.from(GOWA_BASIC_AUTH).toString('base64')}`;
+    }
+
     const cleanLid = lid.split('@')[0];
-    const res = await fetch(`${GOWA_URL}/user/info?phone=${cleanLid}`);
+    const res = await fetch(`${GOWA_URL}/user/info?phone=${cleanLid}`, { headers });
     if (res.ok) {
       const data = await res.json();
       const phone = (data.data?.verified_name?.replace(/\D/g, "") || data.data?.id?.split('@')[0]);
