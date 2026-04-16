@@ -68,14 +68,12 @@ function resolveKabupaten(kecamatan: string | null, address: string | null): str
   return null;
 }
 
-      return match[1].trim();
-  }
-  // Fallback: get the 2nd to last comma separated value if no 'Kec' is found
+function extractKecamatan(address: string): string | null {
+  const match = address.match(/(?:Kec\.|Kecamatan)\s+([A-Za-z\s]+)(?:,|$)/i);
+  if (match && match[1]) return match[1].trim();
   const parts = address.split(',');
-  if (parts.length >= 3) {
-      return parts[parts.length - 2].trim();
-  }
-  return "Unknown";
+  if (parts.length >= 3) return parts[parts.length - 2].trim();
+  return null;
 }
 
 function calculateScore(data: any) {
