@@ -114,10 +114,10 @@ async function scrapeMaps() {
       console.log('Scroll memuat daftar...');
       await autoScroll(page);
       
-      const businessLinks = await page.evaluate(() => {
+      const businessLinks = await page.evaluate(`(function() {
         return Array.from(document.querySelectorAll('a[href^="https://www.google.com/maps/place"]'))
-          .map((a: any) => a.href);
-      });
+          .map((a) => a.href);
+      })()`) as string[];
       
       const uniqueLinks = [...new Set(businessLinks)];
       console.log(`📌 Menemukan ${uniqueLinks.length} prospek. Memulai Deep-Scraping...`);
@@ -133,24 +133,18 @@ async function scrapeMaps() {
             const coordsMatch = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
             const koordinat = coordsMatch ? `${coordsMatch[1]}, ${coordsMatch[2]}` : null;
 
-            const data = await page.evaluate(() => {
+            const data = await page.evaluate(`(function() {
                 const nameNode = document.querySelector('h1.fontHeadlineLarge');
-                
-                // Rating format usually in div.F7nice span
                 const ratingNode = document.querySelector('div.F7nice span[aria-hidden="true"]');
                 
-                const getByTooltip = (selectorContent: string) => {
-                    const btn = document.querySelector(`button[data-tooltip*="${selectorContent}"]`);
-                    // @ts-ignore
+                const getByTooltip = (selectorContent) => {
+                    const btn = document.querySelector('button[data-tooltip*="' + selectorContent + '"]');
                     return btn ? btn.querySelector('.Io6YTe, .fontBodyMedium')?.innerText?.trim() : null;
                 };
+
                 const getWebsite = () => {
                     const as = document.querySelectorAll('a[data-tooltip*="situs web"], a[data-tooltip*="website"]');
-                    if (as.length > 0) {
-                         // @ts-ignore
-                         return as[0].href;
-                    }
-                    return null;
+                    return as.length > 0 ? as[0].href : null;
                 };
 
                 return {
@@ -160,7 +154,7 @@ async function scrapeMaps() {
                     phoneText: getByTooltip("Salin nomor telepon") || getByTooltip("Copy phone number"),
                     website: getWebsite()
                 };
-            });
+            })()`);
 
             if (data.name && data.phoneText) {
                 const phone = cleanPhone(data.phoneText);
