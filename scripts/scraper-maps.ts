@@ -7,15 +7,16 @@ dotenv.config({ path: '.env.local' });
 const dbUrl = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString: dbUrl });
 
-const KEYWORDS = [
-  "Jasa Laser Cutting Sidoarjo",
-  "Laser Cutting Plat Surabaya",
-  "Fabrication Metal Sidoarjo",
-  "Bengkel Pabrik Sidoarjo",
-  "Bengkel Bubut Surabaya",
-  "Kontraktor Mekanikal Elektrikal Surabaya",
-  "Jasa Laser Cutting Gresik",
-  "Bengkel Fabrikasi Pasuruan",
+// Keyword → Kategori otomatis
+const KEYWORD_MAP: { keyword: string; kategori: string }[] = [
+  { keyword: "Jasa Laser Cutting Sidoarjo",       kategori: "Jasa Cutting Laser" },
+  { keyword: "Laser Cutting Plat Surabaya",        kategori: "Jasa Cutting Laser" },
+  { keyword: "Jasa Laser Cutting Gresik",          kategori: "Jasa Cutting Laser" },
+  { keyword: "Fabrication Metal Sidoarjo",         kategori: "Bengkel Fabrikasi" },
+  { keyword: "Bengkel Pabrik Sidoarjo",            kategori: "Bengkel Fabrikasi" },
+  { keyword: "Bengkel Fabrikasi Pasuruan",         kategori: "Bengkel Fabrikasi" },
+  { keyword: "Bengkel Bubut Surabaya",             kategori: "Bengkel & Permesinan" },
+  { keyword: "Kontraktor Mekanikal Elektrikal Surabaya", kategori: "Kontraktor" },
 ];
 
 // Kabupaten lookup - maps kecamatan to kabupaten
@@ -138,8 +139,8 @@ async function scrapeMaps() {
 
   let totalScraped = 0;
 
-  for (const keyword of KEYWORDS) {
-    console.log(`\n🔍 Mencari: ${keyword}`);
+  for (const { keyword, kategori: autoKategori } of KEYWORD_MAP) {
+    console.log(`\n🔍 [${autoKategori}] Mencari: ${keyword}`);
     const page = await browser.newPage();
     
     // Resource Optimization: Block images and styles
@@ -239,6 +240,7 @@ async function scrapeMaps() {
                    koordinat,
                    kecamatan: kecamatan || 'Unknown',
                    kabupaten,
+                   kategori: autoKategori,
                    score: calculateScore({ phone, rating: data.rating, website: data.website })
                 };
 
@@ -252,12 +254,12 @@ async function scrapeMaps() {
 
                 if (check.rows.length === 0) {
                    await pool.query(
-                     `INSERT INTO leads_mk (nama_lead, nomor_wa, status_crm, sumber_lead, alamat_lengkap, website, bintang_google, koordinat_maps, kecamatan, kabupaten, lead_score, last_chat) 
-                      VALUES ($1, $2, 'Cold', 'Scraper', $3, $4, $5, $6, $7, $8, $9, NOW())`,
+                     `INSERT INTO leads_mk (nama_lead, nomor_wa, status_crm, sumber_lead, alamat_lengkap, website, bintang_google, koordinat_maps, kecamatan, kabupaten, kategori, lead_score, last_chat) 
+                      VALUES ($1, $2, 'Cold', 'Scraper', $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
                      [
                         finalData.name, phone, finalData.address, finalData.website, 
                         finalData.rating ? parseFloat(finalData.rating.replace(',','.')) : null,
-                        finalData.koordinat, finalData.kecamatan, finalData.kabupaten, finalData.score
+                        finalData.koordinat, finalData.kecamatan, finalData.kabupaten, finalData.kategori, finalData.score
                      ]
                    );
                    const loc = finalData.kabupaten ? `${finalData.kecamatan} · ${finalData.kabupaten}` : finalData.kecamatan;
