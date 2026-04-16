@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
+import { sendWhatsAppText } from '@/lib/waUtils/waSender';
 
 export async function POST(req: Request) {
   try {
@@ -28,11 +29,6 @@ export async function POST(req: Request) {
     // 1. Get Sales Contact
     const settingsRes = await query(`SELECT setting_value FROM app_settings WHERE setting_key = 'sales_contact_number'`);
     const salesContact = settingsRes.rows.length > 0 ? settingsRes.rows[0].setting_value : '08113438800';
-    
-    // Format to WAHA standard
-    const targetJid = salesContact.startsWith('0') 
-        ? '62' + salesContact.substring(1) + '@c.us' 
-        : salesContact + '@c.us';
 
     // 2. Fetch Lead ID
     const leadResult = await query(`SELECT id FROM leads_mk WHERE nomor_wa = $1`, [phoneNumber]);
@@ -50,10 +46,7 @@ export async function POST(req: Request) {
       await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
     }
 
-    // 3. Notify Sales Office via WAHA
-    const WAHA_URL = 'http://localhost:3007';
-    const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
-
+    // 3. Notify Sales Office via waSender
     const notificationText = `*File Uploaded (Web Chat)*\n\n` +
       `👤 Dari: *${userName}*\n` +
       `📞 No: ${phoneNumber}\n` +
@@ -61,35 +54,15 @@ export async function POST(req: Request) {
       `🔗 Link: ${fileUrl}\n\n` +
       `Segera cek file di atas untuk di-estimasi (DXF/PDF).`;
 
-    await fetch(`${WAHA_URL}/api/sendText`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-      body: JSON.stringify({
-        chatId: targetJid,
-        text: notificationText,
-        session: 'default'
-      })
-    });
+    await sendWhatsAppText(salesContact, notificationText);
 
     // ⚡ 4. Notify CUSTOMER via WhatsApp (Validation & Confirmation)
-    const customerJid = phoneNumber.startsWith('0') 
-        ? '62' + phoneNumber.substring(1) + '@c.us' 
-        : phoneNumber + '@c.us';
-
     const customerWaitText = `Halo Bapak/Ibu *${userName}*,\n\n` +
       `Terima kasih! Kami telah menerima file *${file.name}* yang Bapak/Ibu kirimkan melalui Web Chat MK Metalindo.\n\n` +
       `Mohon balas pesan WhatsApp ini dengan ketik *OK* atau *KONFIRMASI* untuk memastikan nomor ini aktif dan tim kami bisa mengirimkan hasil estimasi harganya ke sini.\n\n` +
       `Terima kasih. 🙏`;
 
-    await fetch(`${WAHA_URL}/api/sendText`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-      body: JSON.stringify({
-        chatId: customerJid,
-        text: customerWaitText,
-        session: 'default'
-      })
-    });
+    await sendWhatsAppText(phoneNumber, customerWaitText);
 
     return NextResponse.json({ success: true, url: fileUrl });
   } catch (error: any) {

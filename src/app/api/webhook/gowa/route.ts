@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { parseWebhook } from '@/lib/waUtils/waParser';
+import { sendWhatsAppText } from '@/lib/waUtils/waSender';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
@@ -183,11 +184,7 @@ export async function POST(req: Request) {
       const matchedFaq = faqData.find((f: any) => f.keywords.some((k: any) => new RegExp(`\\b${k}\\b`, 'i').test(lowerMessage)));
       if (matchedFaq) {
         setTimeout(async () => {
-          await fetch(`${GOWA_URL}/send/message`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Device-Id': device_id },
-            body: JSON.stringify({ phone: targetPhone, message: matchedFaq.response })
-          });
+          await sendWhatsAppText(targetPhone, matchedFaq.response);
           await query(`INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`, [leadId, matchedFaq.response, sessionId]);
         }, 5000);
         return NextResponse.json({ success: true, action: 'faq_queued' });
@@ -232,22 +229,14 @@ export async function POST(req: Request) {
           const replyText = aiData.choices?.[0]?.message?.content || '';
           
           setTimeout(async () => {
-            const resAi = await fetch(`${GOWA_URL}/send/message`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Device-Id': device_id },
-              body: JSON.stringify({ phone: targetPhone, message: replyText })
-            });
+            const sendAiRes = await sendWhatsAppText(targetPhone, replyText);
 
-            if (resAi.ok) {
+            if (sendAiRes.success) {
               await query(`INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`, [leadId, replyText, sessionId]);
               
               if (replyText.toLowerCase().includes(dynamicSalesContact) || replyText.toLowerCase().includes('luluk')) {
                 await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
-                await fetch(`${GOWA_URL}/send/message`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'X-Device-Id': device_id },
-                  body: JSON.stringify({ phone: dynamicContactGowa, message: `*Lead Handoff GoWA*: Customer *${userName}* diteruskan ke Sales.` })
-                });
+                await sendWhatsAppText(dynamicSalesContact, `*Lead Handoff GoWA*: Customer *${userName}* diteruskan ke Sales.`);
               }
             }
           }, 4000);

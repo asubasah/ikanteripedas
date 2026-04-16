@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { sendWhatsAppText } from '@/lib/waUtils/waSender';
 
 export async function POST() {
   try {
@@ -18,21 +19,13 @@ export async function POST() {
       [JSON.stringify({ code: otp, expiresAt })]
     );
 
-    // Send OTP via WAHA
-    const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3007';
-    const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
-    const targetJid = salesPIC.startsWith('0') ? '62' + salesPIC.substring(1) + '@c.us' : salesPIC + '@c.us';
-
+    // Send OTP via waSender (Handles GoWA/WAHA automatically)
     const text = `*KODE LOGIN DASHBOARD MK METAL INDO*\n\nKode OTP Anda adalah: *${otp}*\n\nBerlaku selama 5 menit. Jangan bagikan kode ini kepada siapapun. 🔒`;
+    
+    const sendRes = await sendWhatsAppText(salesPIC, text);
 
-    const res = await fetch(`${WAHA_URL}/api/sendText`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': WAHA_API_KEY },
-      body: JSON.stringify({ chatId: targetJid, text, session: 'default' })
-    });
-
-    if (!res.ok) {
-        throw new Error('Failed to send WA message');
+    if (!sendRes.success) {
+        throw new Error(`Failed to send WA message: ${sendRes.error}`);
     }
 
     // Mask phone number for UI like 0811****800
