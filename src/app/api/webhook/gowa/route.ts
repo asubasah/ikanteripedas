@@ -81,12 +81,16 @@ export async function POST(req: Request) {
 
     const parsed = await parseWebhook(body);
 
-    const MKM_DEVICE_ID = process.env.GOWA_DEVICE_ID || '628113195800';
-    const incomingDeviceId = (body.device_id || '').split('@')[0];
+    const MKM_DEVICE_ID = process.env.GOWA_DEVICE_ID || 'd1b23cd1-d667-442d-9271-89ea2f7d54aa';
+    const MKM_PHONE_FILTER = '628113195800';
+    const incomingDeviceId = body.device_id || '';
+    const incomingPhone = incomingDeviceId.split('@')[0];
 
-    // 🚨 SAFETY FILTER: Only process if message is for MKM number
-    if (incomingDeviceId !== MKM_DEVICE_ID) {
-      console.log(`[GOWA IGNORE]: Message for other device ${incomingDeviceId}. Expected ${MKM_DEVICE_ID}`);
+    // 🚨 SAFETY FILTER: Only process if message is for MKM number OR matches known UUID
+    const isMkmDevice = (incomingPhone === MKM_PHONE_FILTER) || (incomingDeviceId === MKM_DEVICE_ID);
+
+    if (!isMkmDevice) {
+      console.log(`[GOWA IGNORE]: Message for other device ${incomingDeviceId}. Expected ${MKM_PHONE_FILTER} or ${MKM_DEVICE_ID}`);
       return NextResponse.json({ success: true, ignored: true, reason: "mismatched_device_id" });
     }
 
