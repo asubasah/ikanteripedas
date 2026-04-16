@@ -99,7 +99,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, ignored: true });
     }
 
-    const { user_id: customerNumber, reply_jid: targetJid, user_name: userName, message: text, type: parsedType, gateway, device_id } = parsed;
+    const { 
+      user_id: customerNumber = 'unknown', 
+      reply_jid: targetJid = '', 
+      user_name: userName = 'Customer WA', 
+      message: text = '', 
+      type: parsedType = 'text', 
+      gateway = 'gowa', 
+      device_id = 'default' 
+    } = parsed as any;
     const cleanPhone = customerNumber;
     const sessionId = `gowa-${cleanPhone}`;
     const targetPhone = targetJid?.split('@')[0] || cleanPhone;

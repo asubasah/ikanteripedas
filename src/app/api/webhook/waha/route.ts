@@ -107,7 +107,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, ignored: true });
     }
 
-    const { user_id: customerNumber, reply_jid: targetJid, user_name: userName, message: text, type: parsedType, hasMedia, source_field, raw_sender } = parsed;
+    const { 
+      user_id: customerNumber = 'unknown', 
+      reply_jid: targetJid = '', 
+      user_name: userName = 'Customer WA', 
+      message: text = '', 
+      type: parsedType = 'text', 
+      hasMedia = false, 
+      source_field = 'unknown', 
+      raw_sender = '' 
+    } = parsed as any;
     
     // Standardize phone/JID from WAHA payload
     let cleanPhone = customerNumber;
