@@ -5,11 +5,22 @@
 
 export async function sendWhatsAppText(to: string, text: string) {
   const GOWA_URL = process.env.GOWA_URL;
+  const GOWA_BASIC_AUTH = process.env.GOWA_BASIC_AUTH;
   const GOWA_DEVICE_ID = process.env.GOWA_DEVICE_ID || 'default';
   
   const WAHA_URL = process.env.WAHA_URL;
   const WAHA_API_KEY = process.env.WAHA_API_KEY;
   const WAHA_SESSION = process.env.WAHA_SESSION_NAME || 'default';
+
+  // Auth Header for GOWA
+  const gowaHeaders: Record<string, string> = { 
+    'Content-Type': 'application/json',
+    'X-Device-Id': GOWA_DEVICE_ID 
+  };
+  
+  if (GOWA_BASIC_AUTH) {
+    gowaHeaders['Authorization'] = `Basic ${Buffer.from(GOWA_BASIC_AUTH).toString('base64')}`;
+  }
 
   // Standardize JID (Number only for GoWA, @c.us for WAHA)
   const cleanNumber = to.replace(/[^0-9]/g, '');
@@ -21,10 +32,7 @@ export async function sendWhatsAppText(to: string, text: string) {
       console.log(`[waSender] Attempting GoWA send to ${formattedNumber}`);
       const res = await fetch(`${GOWA_URL}/send/message`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Device-Id': GOWA_DEVICE_ID 
-        },
+        headers: gowaHeaders,
         body: JSON.stringify({
           phone: formattedNumber,
           message: text
