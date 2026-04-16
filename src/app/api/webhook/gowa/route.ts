@@ -82,15 +82,17 @@ export async function POST(req: Request) {
     const parsed = await parseWebhook(body);
 
     const MKM_DEVICE_ID = process.env.GOWA_DEVICE_ID || 'd1b23cd1-d667-442d-9271-89ea2f7d54aa';
+    const MKM_MARKETING_DEVICE_ID = 'd2b23cd1-d667-442d-9271-89ea2f7d54aa';
     const MKM_PHONE_FILTER = '628113195800';
     const incomingDeviceId = body.device_id || '';
     const incomingPhone = incomingDeviceId.split('@')[0];
+    const isMarketingDevice = incomingDeviceId === MKM_MARKETING_DEVICE_ID;
 
     // 🚨 SAFETY FILTER: Only process if message is for MKM number OR matches known UUID
-    const isMkmDevice = (incomingPhone === MKM_PHONE_FILTER) || (incomingDeviceId === MKM_DEVICE_ID);
+    const isMkmDevice = (incomingPhone === MKM_PHONE_FILTER) || (incomingDeviceId === MKM_DEVICE_ID) || isMarketingDevice;
 
     if (!isMkmDevice) {
-      console.log(`[GOWA IGNORE]: Message for other device ${incomingDeviceId}. Expected ${MKM_PHONE_FILTER} or ${MKM_DEVICE_ID}`);
+      console.log(`[GOWA IGNORE]: Message for other device ${incomingDeviceId}. Expected ${MKM_PHONE_FILTER}, ${MKM_DEVICE_ID}, or ${MKM_MARKETING_DEVICE_ID}`);
       return NextResponse.json({ success: true, ignored: true, reason: "mismatched_device_id" });
     }
 
@@ -213,7 +215,26 @@ export async function POST(req: Request) {
         else if (hours >= 15 && hours < 19) timeContext = "Sore";
         else if (hours >= 19 || hours < 4) timeContext = "Malam";
 
-        const fullPrompt = getCombinedSystemPrompt(getCoreSystemPrompt(dynamicSalesContact, userName, timeContext), dynamicAiPrompt, getLanguageLogicPrompt());
+        let fullPrompt = '';
+        
+        // ✨ MARKETING INTENT DETECTION
+        if (isMarketingDevice && currentStatus === 'Cold') {
+          console.log(`[GOWA AI] Analyzing intent for Marketing Blast Lead: ${leadId}`);
+          fullPrompt = `Kamu adalah analis niat (Intent Analyzer) untuk pesan WhatsApp B2B MK Metalindo.
+Lead ini baru saja menerima blast penawaran marketing (Laser Cutting & Bending CNC).
+Deteksi niat dari balasan lead saat ini, dan berikan balasan yang sangat ringkas dan natural.
+
+ATURAN:
+1. Jika balasan berisi penolakan kasar, makian, tidak mau diganggu, "jangan wa lagi", dll:
+   Mulakan pesan bahasamu dengan kata [REJECTED]. Lanjutkan dengan permohonan maaf sopan maksimal 2 kalimat (Misal: "[REJECTED] Baik Bapak/Ibu, mohon maaf atas ketidaknyamanannya. Terima kasih atas waktunya.").
+2. Jika balasan berisi ketertarikan, tanya harga, minta proposal, kirim gambar, dll:
+   Mulakan pesan bahasamu dengan kata [INTERESTED]. Lanjutkan dengan jawaban antusias (Misal: "[INTERESTED] Tentu Bapak/Ibu, silakan kirimkan file gambarnya untuk kami estimasikan.").
+3. Jika niatnya netral atau bertanya hal lain:
+   Mulakan pesan bahasamu dengan kata [INTERESTED].`;
+        } else {
+          // Standard CS Prompt
+          fullPrompt = getCombinedSystemPrompt(getCoreSystemPrompt(dynamicSalesContact, userName, timeContext), dynamicAiPrompt, getLanguageLogicPrompt());
+        }
 
         const openRouterRes = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
           method: 'POST',
@@ -230,17 +251,44 @@ export async function POST(req: Request) {
 
         if (openRouterRes.ok) {
           const aiData = await openRouterRes.json();
-          const replyText = aiData.choices?.[0]?.message?.content || '';
+          let replyText = aiData.choices?.[0]?.message?.content || '';
+          
+          if (isMarketingDevice && currentStatus === 'Cold') {
+            if (replyText.startsWith('[REJECTED]')) {
+               replyText = replyText.replace('[REJECTED]', '').trim();
+               await query(`UPDATE leads_mk SET status_crm = 'Rejected' WHERE id = $1`, [leadId]);
+            } else if (replyText.startsWith('[INTERESTED]')) {
+               replyText = replyText.replace('[INTERESTED]', '').trim();
+               await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
+            }
+          }
           
           setTimeout(async () => {
-            const sendAiRes = await sendWhatsAppText(targetPhone, replyText);
+            const authHeader = process.env.GOWA_BASIC_AUTH ? { 'Authorization': `Basic ${Buffer.from(process.env.GOWA_BASIC_AUTH).toString('base64')}` } : {};
+            // Using GOWA device id for replies to maintain consistency based on incoming device
+            const sendAiRes = await fetch(`${GOWA_URL}/send/message`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'X-Device-Id': incomingDeviceId,
+                ...authHeader
+              },
+              body: JSON.stringify({
+                phone: targetPhone,
+                message: replyText
+              })
+            });
 
-            if (sendAiRes.success) {
+            if (sendAiRes.ok) {
               await query(`INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`, [leadId, replyText, sessionId]);
               
               if (replyText.toLowerCase().includes(dynamicSalesContact) || replyText.toLowerCase().includes('luluk')) {
                 await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
-                await sendWhatsAppText(dynamicSalesContact, `*Lead Handoff GoWA*: Customer *${userName}* diteruskan ke Sales.`);
+                await fetch(`${GOWA_URL}/send/message`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-Device-Id': MKM_DEVICE_ID, ...authHeader },
+                  body: JSON.stringify({ phone: dynamicContactGowa, message: `*Lead Handoff Marketing (GoWA)*: Customer *${userName}* diteruskan ke Sales (${targetPhone}).` })
+                });
               }
             }
           }, 4000);
