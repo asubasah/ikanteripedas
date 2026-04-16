@@ -204,8 +204,8 @@ async function scrapeMaps() {
             } else {
                 console.log(`⏭️ [SKIP] Data tidak valid (Tanpa Nomor HP)`);
             }
-        } catch (e) {
-            console.warn(`Gagal memproses link... Lanjut ke yang lain.`);
+        } catch (e: any) {
+            console.warn(`❌ Gagal memproses link (${link.substring(0, 40)}...): ${e.message}`);
         }
       }
     } catch (e: any) {
