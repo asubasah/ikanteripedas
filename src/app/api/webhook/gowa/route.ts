@@ -264,15 +264,18 @@ ATURAN:
           }
           
           setTimeout(async () => {
-            const authHeader = process.env.GOWA_BASIC_AUTH ? { 'Authorization': `Basic ${Buffer.from(process.env.GOWA_BASIC_AUTH).toString('base64')}` } : {};
+            const headers: Record<string, string> = { 
+                'Content-Type': 'application/json',
+                'X-Device-Id': incomingDeviceId
+            };
+            if (process.env.GOWA_BASIC_AUTH) {
+                headers['Authorization'] = `Basic ${Buffer.from(process.env.GOWA_BASIC_AUTH).toString('base64')}`;
+            }
+
             // Using GOWA device id for replies to maintain consistency based on incoming device
             const sendAiRes = await fetch(`${GOWA_URL}/send/message`, {
               method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'X-Device-Id': incomingDeviceId,
-                ...authHeader
-              },
+              headers,
               body: JSON.stringify({
                 phone: targetPhone,
                 message: replyText
@@ -284,9 +287,15 @@ ATURAN:
               
               if (replyText.toLowerCase().includes(dynamicSalesContact) || replyText.toLowerCase().includes('luluk')) {
                 await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
+                
+                const handoffHeaders: Record<string, string> = { 'Content-Type': 'application/json', 'X-Device-Id': MKM_DEVICE_ID };
+                if (process.env.GOWA_BASIC_AUTH) {
+                   handoffHeaders['Authorization'] = `Basic ${Buffer.from(process.env.GOWA_BASIC_AUTH).toString('base64')}`;
+                }
+
                 await fetch(`${GOWA_URL}/send/message`, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'X-Device-Id': MKM_DEVICE_ID, ...authHeader },
+                  headers: handoffHeaders,
                   body: JSON.stringify({ phone: dynamicContactGowa, message: `*Lead Handoff Marketing (GoWA)*: Customer *${userName}* diteruskan ke Sales (${targetPhone}).` })
                 });
               }
