@@ -62,6 +62,9 @@ export default function CRMDashboard() {
   const [scrapeKeyword, setScrapeKeyword] = useState('Karoseri Sidoarjo');
   const [scrapeKategori, setScrapeKategori] = useState('Otomotif & Karoseri');
   const [newKategori, setNewKategori] = useState('');
+  
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Auth States
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -177,6 +180,39 @@ export default function CRMDashboard() {
       }
     } catch (e) {
       alert('Error menghubungi server scraper');
+    }
+  };
+
+  const handleAiSetup = async () => {
+    if (!aiPrompt.trim()) return;
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/debug/leads/scraper/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt, kategori_list: KATEGORI_LIST })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.keyword) setScrapeKeyword(data.keyword);
+        
+        // Handle detected category
+        if (data.kategori) {
+          if (KATEGORI_LIST.includes(data.kategori)) {
+            setScrapeKategori(data.kategori);
+            setNewKategori('');
+          } else {
+            setScrapeKategori('TAMBAH_BARU');
+            setNewKategori(data.kategori);
+          }
+        }
+      } else {
+        alert('Gagal menerjemahkan teks via AI');
+      }
+    } catch (e) {
+      alert('Error menghubungi server AI');
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -539,8 +575,22 @@ export default function CRMDashboard() {
           <div style={{ background: '#12151D', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: 600, maxWidth: '90%', padding: 32, position: 'relative', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
             <button onClick={() => setScraperModal(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'transparent', border: 'none', color: '#94A3B8', fontSize: 24, cursor: 'pointer' }}>×</button>
             <h2 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 800, color: '#F1F5F9' }}>🤖 Auto-Scraper Control</h2>
-            <p style={{ margin: '0 0 24px', fontSize: 13, color: '#94A3B8' }}>Jalankan pencarian otomatis ke Google Maps. Anda bisa menambahkan atau mengganti keyword dan kategori target secara custom di bawah ini.</p>
+            <p style={{ margin: '0 0 24px', fontSize: 13, color: '#94A3B8' }}>Jalankan pencarian otomatis ke Google Maps. Anda bisa mengetik dengan asisten AI, atau melengkapi data secara manual di bawah ini.</p>
             
+            <div style={{ padding: 16, background: 'rgba(124, 58, 237, 0.1)', borderRadius: 12, border: '1px solid rgba(124, 58, 237, 0.3)', marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700, color: '#A78BFA' }}>✨ AI Assistant (Ketik seperti chat biasa)</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="text" value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} 
+                       placeholder="Cth: Tolong cariin bengkel bubut di pasuruan dong"
+                       onKeyDown={e => e.key === 'Enter' && handleAiSetup()}
+                       style={{ flex: 1, padding: '10px 12px', background: '#0D0F14', border: '1px solid rgba(124, 58, 237, 0.3)', color: '#F1F5F9', borderRadius: 8, fontSize: 13, outline: 'none' }} />
+                <button onClick={handleAiSetup} disabled={aiLoading}
+                        style={{ padding: '0 16px', background: '#7C3AED', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, cursor: aiLoading ? 'not-allowed' : 'pointer', opacity: aiLoading ? 0.7 : 1 }}>
+                  {aiLoading ? 'Mikir...' : 'Generate AI'}
+                </button>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
                 <div>
