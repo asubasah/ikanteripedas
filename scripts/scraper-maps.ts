@@ -8,7 +8,18 @@ const dbUrl = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString: dbUrl });
 
 // Keyword → Kategori otomatis (Fokus Target Market)
-const KEYWORD_MAP: { keyword: string; kategori: string }[] = [
+let KEYWORD_MAP: { keyword: string; kategori: string }[] = [];
+
+if (process.env.SCRAPE_KEYWORDS) {
+  try {
+     KEYWORD_MAP = JSON.parse(process.env.SCRAPE_KEYWORDS);
+  } catch (e) {
+     console.error('Invalid custom SCRAPE_KEYWORDS JSON');
+  }
+}
+
+if (KEYWORD_MAP.length === 0) {
+  KEYWORD_MAP = [
   // Kompetitor / Kolaborator
   { keyword: "Jasa Laser Cutting Sidoarjo",       kategori: "Jasa Cutting Laser" },
   { keyword: "Laser Cutting Plat Surabaya",        kategori: "Jasa Cutting Laser" },
@@ -23,10 +34,11 @@ const KEYWORD_MAP: { keyword: string; kategori: string }[] = [
   { keyword: "Workshop Konstruksi Baja Gresik",    kategori: "Konstruksi Baja" },
   { keyword: "Pembuat Lift Surabaya",              kategori: "Manufaktur Lift" },
   { keyword: "Manufaktur Logam Sidoarjo",          kategori: "Industri Manufaktur" },
-  { keyword: "Produsen Pintu Besi Pasuruan",       kategori: "Manufaktur Pintu/Pagar" },
-  { keyword: "Kontraktor Mekanikal Elektrikal Surabaya", kategori: "Kontraktor ME" },
-  { keyword: "Pembuat Mesin Industri Surabaya",    kategori: "Pabrik Mesin" },
-];
+    { keyword: "Produsen Pintu Besi Pasuruan",       kategori: "Manufaktur Pintu/Pagar" },
+    { keyword: "Kontraktor Mekanikal Elektrikal Surabaya", kategori: "Kontraktor ME" },
+    { keyword: "Pembuat Mesin Industri Surabaya",    kategori: "Pabrik Mesin" },
+  ];
+}
 
 // Kabupaten lookup - maps kecamatan to kabupaten
 const KABUPATEN_LOOKUP: Record<string, string> = {

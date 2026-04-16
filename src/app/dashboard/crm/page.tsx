@@ -55,6 +55,11 @@ export default function CRMDashboard() {
   const [editRow, setEditRow] = useState<EditState | null>(null);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [filters, setFilters] = useState({ kabupaten: 'Semua', kecamatan: 'Semua', kategori: 'Semua', status: 'Semua' });
+  
+  // Scraper & Export States
+  const [scraperStatus, setScraperStatus] = useState({ isRunning: false, logs: '' });
+  const [scraperModal, setScraperModal] = useState(false);
+  const [customKwText, setCustomKwText] = useState("[\n  {\"keyword\": \"Karoseri Surabaya\", \"kategori\": \"Otomotif & Karoseri\"}\n]");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -71,6 +76,53 @@ export default function CRMDashboard() {
   }, [filters]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    const checkScraper = async () => {
+      try {
+        const res = await fetch('/api/debug/leads/scraper');
+        if (res.ok) {
+           setScraperStatus(await res.json());
+        }
+      } catch (e) {}
+    };
+    checkScraper();
+    const interval = setInterval(checkScraper, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleExport = () => {
+    const qs = new URLSearchParams();
+    if (filters.kabupaten !== 'Semua') qs.set('kabupaten', filters.kabupaten);
+    if (filters.kecamatan !== 'Semua') qs.set('kecamatan', filters.kecamatan);
+    if (filters.kategori !== 'Semua') qs.set('kategori', filters.kategori);
+    if (filters.status !== 'Semua') qs.set('status', filters.status);
+    window.open(`/api/debug/leads/export?${qs}`, '_blank');
+  };
+
+  const handleScraper = async (action: 'start' | 'stop') => {
+    try {
+      let kw = undefined;
+      if (action === 'start') {
+        try { kw = JSON.parse(customKwText); } 
+        catch(e) { alert('Format keyword JSON salah!'); return; }
+      }
+      
+      const res = await fetch('/api/debug/leads/scraper', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, keywords: kw })
+      });
+      if (!res.ok) {
+         const data = await res.json();
+         alert((data as any).error || 'Gagal');
+      } else {
+         if (action === 'start') setScraperModal(false);
+      }
+    } catch (e) {
+      alert('Error menghubungi server scraper');
+    }
+  };
 
   const saveEdit = async () => {
     if (!editRow) return;
@@ -108,7 +160,13 @@ export default function CRMDashboard() {
             <p style={{ margin: 0, fontSize: 11, color: '#475569' }}>Sidoarjo · Surabaya · Gresik · Pasuruan</p>
           </div>
         </div>
-        <button onClick={fetchData} style={{ padding: '6px 16px', background: '#991B1B', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>↻ Refresh</button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button onClick={() => setScraperModal(true)} style={{ padding: '6px 16px', background: scraperStatus.isRunning ? '#059669' : '#1D4ED8', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+             {scraperStatus.isRunning ? '🟢 Scraper Running' : '🤖 Jalankan Scraper'}
+          </button>
+          <button onClick={handleExport} style={{ padding: '6px 16px', background: '#475569', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>📥 Export CSV</button>
+          <button onClick={fetchData} style={{ padding: '6px 16px', background: '#991B1B', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>↻ Refresh</button>
+        </div>
       </header>
 
       {/* Stats */}
@@ -363,6 +421,43 @@ export default function CRMDashboard() {
           </div>
         </div>
       )}
+
+      {/* Modal Scraper Control */}
+      {scraperModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#12151D', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: 600, maxWidth: '90%', padding: 32, position: 'relative', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+            <button onClick={() => setScraperModal(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'transparent', border: 'none', color: '#94A3B8', fontSize: 24, cursor: 'pointer' }}>×</button>
+            <h2 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 800, color: '#F1F5F9' }}>🤖 Auto-Scraper Control</h2>
+            <p style={{ margin: '0 0 24px', fontSize: 13, color: '#94A3B8' }}>Jalankan pencarian otomatis ke Google Maps. Anda bisa menambahkan atau mengganti keyword dan kategori target secara custom di bawah ini.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 700, color: '#E2E8F0' }}>Target Keywords (Format JSON)</label>
+                <textarea 
+                  value={customKwText} 
+                  onChange={e => setCustomKwText(e.target.value)}
+                  style={{ width: '100%', height: 120, background: '#0D0F14', border: '1px solid rgba(255,255,255,0.1)', color: '#34D399', borderRadius: 8, padding: 12, fontSize: 12, fontFamily: 'monospace', outline: 'none', resize: 'vertical' }}
+                />
+              </div>
+
+              {scraperStatus.isRunning ? (
+                <div style={{ background: 'rgba(5, 150, 105, 0.1)', border: '1px solid #059669', padding: 16, borderRadius: 12 }}>
+                  <p style={{ margin: '0 0 8px', color: '#34D399', fontWeight: 700, fontSize: 13 }}>🟢 Scraper Sedang Berjalan</p>
+                  <pre style={{ margin: 0, padding: 12, background: '#0D0F14', color: '#94A3B8', fontSize: 10, borderRadius: 8, height: 100, overflowY: 'auto' }}>
+                    {scraperStatus.logs || 'Memulai proses...'}
+                  </pre>
+                  <button onClick={() => handleScraper('stop')} style={{ marginTop: 12, width: '100%', padding: '10px', background: '#DC2626', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, cursor: 'pointer' }}>Hentikan Paksa Scraper</button>
+                </div>
+              ) : (
+                <button onClick={() => handleScraper('start')} style={{ width: '100%', padding: '12px', background: '#2563EB', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                  Mulai Deep-Scraping 🚀
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
