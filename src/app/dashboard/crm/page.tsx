@@ -61,6 +61,16 @@ export default function CRMDashboard() {
   const [scraperModal, setScraperModal] = useState(false);
   const [customKwText, setCustomKwText] = useState("[\n  {\"keyword\": \"Karoseri Surabaya\", \"kategori\": \"Otomotif & Karoseri\"}\n]");
 
+  // Auth States
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [otpStep, setOtpStep] = useState<'request' | 'verify'>('request');
+  const [otpCode, setOtpCode] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [maskedTarget, setMaskedTarget] = useState('');
+  const [scraperModal, setScraperModal] = useState(false);
+  const [customKwText, setCustomKwText] = useState("[\n  {\"keyword\": \"Karoseri Surabaya\", \"kategori\": \"Otomotif & Karoseri\"}\n]");
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -70,10 +80,53 @@ export default function CRMDashboard() {
       if (filters.kategori !== 'Semua') qs.set('kategori', filters.kategori);
       if (filters.status !== 'Semua') qs.set('status', filters.status);
       const res = await fetch(`/api/debug/leads/crm?${qs}`);
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+      setIsAuthenticated(true);
       if (res.ok) setData(await res.json());
     } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  }, [filters]);
+    finally { if (isAuthenticated !== false) setLoading(false); }
+  }, [filters, isAuthenticated]);
+
+  const requestOtp = async () => {
+    setAuthLoading(true);
+    setAuthError('');
+    try {
+      const res = await fetch('/api/auth/otp', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal mengirim OTP');
+      setMaskedTarget(data.maskedPhone);
+      setOtpStep('verify');
+    } catch (err: any) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const verifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError('');
+    try {
+      const res = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: otpCode })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Kode salah');
+      setIsAuthenticated(true);
+      fetchData();
+    } catch (err: any) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -146,6 +199,61 @@ export default function CRMDashboard() {
   }[s] || 'text-white/30 bg-white/5');
 
   const kecOptions = filters.kabupaten !== 'Semua' ? (KABUPATEN_MAP[filters.kabupaten] || data.kecamatan_list) : data.kecamatan_list;
+
+  if (isAuthenticated === false) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0D0F14', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, color: '#E2E8F0', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ width: '100%', maxWidth: 384, background: '#12151D', border: '1px solid rgba(255,255,255,0.07)', padding: 32, borderRadius: 16, boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px', color: '#F1F5F9' }}>MK Metalindo CRM</h1>
+            <p style={{ fontSize: 12, color: '#94A3B8', margin: 0 }}>Secure Console Access</p>
+          </div>
+
+          {authError && (
+            <div style={{ background: 'rgba(220, 38, 38, 0.1)', border: '1px solid #DC2626', color: '#FCA5A5', padding: '12px 16px', borderRadius: 8, fontSize: 13, marginBottom: 24, textAlign: 'center' }}>
+              {authError}
+            </div>
+          )}
+
+          {otpStep === 'request' ? (
+            <div style={{ textAlign: 'center' }}>
+              <button 
+                onClick={requestOtp}
+                disabled={authLoading}
+                style={{ width: '100%', padding: '14px', background: '#2563EB', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 14, cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1 }}
+              >
+                {authLoading ? 'Mengirim...' : 'Request OTP Login'}
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={verifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 700, color: '#E2E8F0' }}>
+                  Masukkan kode OTP yang dikirim ke <span style={{ color: '#34D399' }}>{maskedTarget}</span>
+                </label>
+                <input 
+                  type="text" 
+                  autoFocus
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\\D/g, ''))}
+                  placeholder="000000"
+                  style={{ width: '100%', padding: '14px', background: '#0D0F14', border: '1px solid rgba(255,255,255,0.1)', color: '#34D399', borderRadius: 8, fontSize: 24, letterSpacing: 8, textAlign: 'center', outline: 'none', fontWeight: 800 }}
+                />
+              </div>
+              <button 
+                type="submit"
+                disabled={authLoading || otpCode.length !== 6}
+                style={{ width: '100%', padding: '14px', background: '#059669', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 14, cursor: (authLoading || otpCode.length !== 6) ? 'not-allowed' : 'pointer', opacity: (authLoading || otpCode.length !== 6) ? 0.7 : 1 }}
+              >
+                {authLoading ? 'Verifikasi...' : 'Verifikasi OTP'}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#0D0F14', color: '#E2E8F0', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column' }}>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,12 @@ const PID_FILE = path.join(process.cwd(), 'data', 'scraper_pid.txt');
 const LOG_FILE = path.join(process.cwd(), 'data', 'scraper_log.txt');
 
 export async function GET() {
+  const cookieStore = await cookies();
+  const authCookie = cookieStore.get('admin_auth');
+  if (!authCookie || authCookie.value !== 'authenticated') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     let pid = null;
     let isRunning = false;
@@ -42,6 +49,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const cookieStore = await cookies();
+  const authCookie = cookieStore.get('admin_auth');
+  if (!authCookie || authCookie.value !== 'authenticated') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { action, keywords } = await request.json();
 
