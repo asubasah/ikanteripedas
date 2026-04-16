@@ -81,7 +81,14 @@ async function scrapeMaps() {
   const browser = await puppeteer.launch({
     headless: true,
     defaultViewport: null,
-    args: ['--start-maximized', '--no-sandbox', '--disable-setuid-sandbox']
+    args: [
+      '--no-sandbox', 
+      '--disable-setuid-sandbox', 
+      '--disable-dev-shm-usage', 
+      '--disable-accelerated-2d-canvas', 
+      '--disable-gpu',
+      '--js-flags="--max-old-space-size=512"'
+    ]
   });
 
   let totalScraped = 0;
@@ -89,6 +96,17 @@ async function scrapeMaps() {
   for (const keyword of KEYWORDS) {
     console.log(`\n🔍 Mencari: ${keyword}`);
     const page = await browser.newPage();
+    
+    // Resource Optimization: Block images and styles
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     try {
       await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(keyword)}`);
       await page.waitForSelector('div[role="feed"]', { timeout: 15000 }).catch(() => console.log('Feed tidak ditemukan'));
