@@ -13,21 +13,61 @@ const KEYWORDS = [
   "Fabrication Metal Sidoarjo",
   "Bengkel Pabrik Sidoarjo",
   "Bengkel Bubut Surabaya",
-  "Kontraktor Mekanikal Elektrikal Surabaya"
+  "Kontraktor Mekanikal Elektrikal Surabaya",
+  "Jasa Laser Cutting Gresik",
+  "Bengkel Fabrikasi Pasuruan",
 ];
 
-function cleanPhone(raw: string) {
-  let cleaned = raw.replace(/\D/g, '');
-  if (cleaned.startsWith('62')) cleaned = '0' + cleaned.substring(2);
-  if (cleaned.startsWith('8')) cleaned = '0' + cleaned;
-  return cleaned.length >= 10 ? cleaned : null;
+// Kabupaten lookup - maps kecamatan to kabupaten
+const KABUPATEN_LOOKUP: Record<string, string> = {
+  // Kota Surabaya
+  'Rungkut': 'Kota Surabaya', 'Tenggilis Mejoyo': 'Kota Surabaya', 'Sukolilo': 'Kota Surabaya',
+  'Gunung Anyar': 'Kota Surabaya', 'Mulyorejo': 'Kota Surabaya', 'Tambaksari': 'Kota Surabaya',
+  'Gubeng': 'Kota Surabaya', 'Wonokromo': 'Kota Surabaya', 'Wonocolo': 'Kota Surabaya',
+  'Wiyung': 'Kota Surabaya', 'Gayungan': 'Kota Surabaya', 'Jambangan': 'Kota Surabaya',
+  'Karangpilang': 'Kota Surabaya', 'Dukuh Pakis': 'Kota Surabaya', 'Sawahan': 'Kota Surabaya',
+  'Tegalsari': 'Kota Surabaya', 'Bubutan': 'Kota Surabaya', 'Simokerto': 'Kota Surabaya',
+  'Pabean Cantikan': 'Kota Surabaya', 'Semampir': 'Kota Surabaya', 'Kenjeran': 'Kota Surabaya',
+  'Bulak': 'Kota Surabaya', 'Krembangan': 'Kota Surabaya', 'Benowo': 'Kota Surabaya',
+  'Pakal': 'Kota Surabaya', 'Lakarsantri': 'Kota Surabaya', 'Sambikerep': 'Kota Surabaya',
+  'Tandes': 'Kota Surabaya', 'Sukomanunggal': 'Kota Surabaya', 'Asemrowo': 'Kota Surabaya',
+  // Kab. Sidoarjo
+  'Waru': 'Kab. Sidoarjo', 'Gedangan': 'Kab. Sidoarjo', 'Sedati': 'Kab. Sidoarjo',
+  'Buduran': 'Kab. Sidoarjo', 'Sidoarjo': 'Kab. Sidoarjo', 'Candi': 'Kab. Sidoarjo',
+  'Tanggulangin': 'Kab. Sidoarjo', 'Porong': 'Kab. Sidoarjo', 'Krembung': 'Kab. Sidoarjo',
+  'Tulangan': 'Kab. Sidoarjo', 'Wonoayu': 'Kab. Sidoarjo', 'Krian': 'Kab. Sidoarjo',
+  'Taman': 'Kab. Sidoarjo', 'Sukodono': 'Kab. Sidoarjo', 'Tarik': 'Kab. Sidoarjo',
+  'Prambon': 'Kab. Sidoarjo', 'Jabon': 'Kab. Sidoarjo', 'Balong Bendo': 'Kab. Sidoarjo',
+  // Kab. Gresik
+  'Driyorejo': 'Kab. Gresik', 'Kebomas': 'Kab. Gresik', 'Gresik': 'Kab. Gresik',
+  'Manyar': 'Kab. Gresik', 'Cerme': 'Kab. Gresik', 'Bungah': 'Kab. Gresik',
+  'Menganti': 'Kab. Gresik', 'Duduk Sampeyan': 'Kab. Gresik',
+  // Kab. Pasuruan
+  'Pandaan': 'Kab. Pasuruan', 'Beji': 'Kab. Pasuruan', 'Bangil': 'Kab. Pasuruan',
+  'Gempol': 'Kab. Pasuruan', 'Rembang': 'Kab. Pasuruan', 'Nguling': 'Kab. Pasuruan',
+};
+
+// Also detect from city name in address
+const KOTA_LOOKUP: Record<string, string> = {
+  'surabaya': 'Kota Surabaya',
+  'sidoarjo': 'Kab. Sidoarjo',
+  'gresik': 'Kab. Gresik',
+  'pasuruan': 'Kab. Pasuruan',
+};
+
+function resolveKabupaten(kecamatan: string | null, address: string | null): string | null {
+  // Try by kecamatan lookup first
+  if (kecamatan && KABUPATEN_LOOKUP[kecamatan]) return KABUPATEN_LOOKUP[kecamatan];
+  // Try by address keywords
+  if (address) {
+    const addr = address.toLowerCase();
+    for (const [city, kab] of Object.entries(KOTA_LOOKUP)) {
+      if (addr.includes(city)) return kab;
+    }
+  }
+  return null;
 }
 
-function extractKecamatan(address: string) {
-  // Address usually looks like: "Jl. Rungkut Industri Raya No.1, Kendangsari, Kec. Tenggilis Mejoyo, Surabaya"
-  // Regex to match "Kec. [Word]" or "Kecamatan [Word]"
-  const match = address.match(/(?:Kec\.|Kecamatan)\s+([A-Za-z\s]+)(?:,|$)/i);
-  if (match && match[1]) {
       return match[1].trim();
   }
   // Fallback: get the 2nd to last comma separated value if no 'Kec' is found
@@ -185,13 +225,15 @@ async function scrapeMaps() {
 
             if (data.name) {
                 const phone = data.phoneText ? cleanPhone(data.phoneText) : null;
-                const kecamatan = data.address ? extractKecamatan(data.address) : 'Unknown';
+                const kecamatan = data.address ? extractKecamatan(data.address) : null;
+                const kabupaten = resolveKabupaten(kecamatan, data.address);
                 
                 const finalData = {
                    ...data,
                    phone,
                    koordinat,
-                   kecamatan,
+                   kecamatan: kecamatan || 'Unknown',
+                   kabupaten,
                    score: calculateScore({ phone, rating: data.rating, website: data.website })
                 };
 
@@ -205,15 +247,16 @@ async function scrapeMaps() {
 
                 if (check.rows.length === 0) {
                    await pool.query(
-                     `INSERT INTO leads_mk (nama_lead, nomor_wa, status_crm, sumber_lead, alamat_lengkap, website, bintang_google, koordinat_maps, kecamatan, lead_score, last_chat) 
-                      VALUES ($1, $2, 'Cold', 'Scraper', $3, $4, $5, $6, $7, $8, NOW())`,
+                     `INSERT INTO leads_mk (nama_lead, nomor_wa, status_crm, sumber_lead, alamat_lengkap, website, bintang_google, koordinat_maps, kecamatan, kabupaten, lead_score, last_chat) 
+                      VALUES ($1, $2, 'Cold', 'Scraper', $3, $4, $5, $6, $7, $8, $9, NOW())`,
                      [
                         finalData.name, phone, finalData.address, finalData.website, 
                         finalData.rating ? parseFloat(finalData.rating.replace(',','.')) : null,
-                        finalData.koordinat, finalData.kecamatan, finalData.score
+                        finalData.koordinat, finalData.kecamatan, finalData.kabupaten, finalData.score
                      ]
                    );
-                   console.log(`✅ [${finalData.score} Pts] ${finalData.name} ${phone ? '(' + phone + ')' : '(Tanpa HP)'}`);
+                   const loc = finalData.kabupaten ? `${finalData.kecamatan} · ${finalData.kabupaten}` : finalData.kecamatan;
+                   console.log(`✅ [${finalData.score} Pts] ${finalData.name} | ${loc} ${phone ? '(' + phone + ')' : '(Tanpa HP)'}`);
                    totalScraped++;
                 } else {
                    console.log(`♻️  [SKIP] ${finalData.name} (Sudah ada di database)`);
