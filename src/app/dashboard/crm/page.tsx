@@ -324,7 +324,7 @@ export default function CRMDashboard() {
              {scraperStatus.isRunning ? '🟢 Scraper Running' : '🤖 Jalankan Scraper'}
           </button>
           <button onClick={handleExport} style={{ padding: '6px 16px', background: '#475569', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>📥 Export CSV</button>
-          <button onClick={fetchData} style={{ padding: '6px 16px', background: '#991B1B', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>↻ Refresh</button>
+          <button onClick={() => fetchData()} style={{ padding: '6px 16px', background: '#991B1B', border: 'none', borderRadius: 8, color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>↻ Refresh</button>
         </div>
       </header>
 
