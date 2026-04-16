@@ -121,18 +121,28 @@ function calculateScore(data: any) {
 async function autoScroll(page: any) {
   await page.evaluate(async () => {
     await new Promise((resolve) => {
-      let totalHeight = 0;
-      let distance = 300;
+      let prevHeight = 0;
+      let noChangeCount = 0;
+      
       const timer = setInterval(() => {
         const scrollable = document.querySelector('div[role="feed"]');
         if (scrollable) {
-          scrollable.scrollBy(0, distance);
-          totalHeight += distance;
-          if (totalHeight >= scrollable.scrollHeight - window.innerHeight) {
-            clearInterval(timer);
-            resolve(true);
+          // Scroll down by a large amount
+          scrollable.scrollBy(0, 800);
+          
+          if (scrollable.scrollHeight === prevHeight) {
+             noChangeCount++;
+             // Wait 10 iterations without height change before deciding it's the end (5 seconds)
+             if (noChangeCount >= 10) { 
+                clearInterval(timer);
+                resolve(true);
+             }
+          } else {
+             noChangeCount = 0;
+             prevHeight = scrollable.scrollHeight;
           }
         } else {
+          // Fallback if no feed div found
           clearInterval(timer);
           resolve(true);
         }
@@ -182,8 +192,9 @@ async function scrapeMaps() {
       await autoScroll(page);
       
       const businessLinks = await page.evaluate(`(function() {
-        return Array.from(document.querySelectorAll('a[href^="https://www.google.com/maps/place"]'))
-          .map((a) => a.href);
+        return Array.from(document.querySelectorAll('a[href^="https://www.google.com/maps/place"], a.hfpxzc'))
+          .map((a) => a.href || '')
+          .filter(href => href.includes('/maps/place'));
       })()`) as string[];
       
       const uniqueLinks = [...new Set(businessLinks)];
