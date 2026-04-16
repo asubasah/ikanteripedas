@@ -2,38 +2,42 @@ import { normalizeAndValidate } from "./phone";
 
 async function resolveLidToPhone(lid: string): Promise<string | null> {
   const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3017';
+  const GOWA_URL = process.env.GOWA_URL || 'http://127.0.0.1:3010';
   const WAHA_API_KEY = process.env.WAHA_API_KEY || 'mkm123';
   const encodedLid = encodeURIComponent(lid);
   
-  console.log(`[LID DEBUG] Attempting to resolve: ${lid} via ${WAHA_URL}`);
-
-  try {
-    // 🎯 Use WAHA Native Contact API to resolve LIDs
-    const res = await fetch(`${WAHA_URL}/api/default/contacts/${encodedLid}`, {
-      headers: {
-        'Accept': 'application/json',
-        'X-Api-Key': WAHA_API_KEY
+  // 🎯 Try WAHA first if it looks like a WAHA setup
+  if (process.env.WAHA_URL) {
+    try {
+      console.log(`[LID DEBUG] Attempting to resolve: ${lid} via ${WAHA_URL}`);
+      const res = await fetch(`${WAHA_URL}/api/default/contacts/${encodedLid}`, {
+        headers: { 'Accept': 'application/json', 'X-Api-Key': WAHA_API_KEY }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const realId = (data.number || data.id || '').split('@')[0];
+        if (realId && realId.length >= 10 && !realId.includes('lid')) {
+          let phone = realId.replace(/\D/g, "");
+          console.log(`✅ LID RESOLVED via WAHA Native: ${lid} -> ${phone}`);
+          return phone;
+        }
       }
-    });
+    } catch (e: any) {
+      console.warn(`[LID WARNING] WAHA resolve failed, trying GoWA...`);
+    }
+  }
 
+  // 🎯 Try GoWA resolve if WAHA fails or isn't used
+  try {
+    const cleanLid = lid.split('@')[0];
+    const res = await fetch(`${GOWA_URL}/user/info?phone=${cleanLid}`);
     if (res.ok) {
       const data = await res.json();
-      // WAHA returns real ID/Number in 'id' or 'number' field if resolved
-      const realId = (data.number || data.id || '').split('@')[0];
-      
-      if (realId && realId.length >= 10 && !realId.includes('lid')) {
-        let phone = realId.replace(/\D/g, "");
-        console.log(`✅ LID RESOLVED via WAHA Native: ${lid} -> ${phone}`);
-        return phone;
-      } else {
-        console.warn(`[LID WARNING] WAHA returned data but no real ID found:`, JSON.stringify(data));
-      }
-    } else {
-      const errText = await res.text();
-      console.warn(`[LID ERROR] WAHA returned status ${res.status}: ${errText}`);
+      const phone = (data.data?.verified_name?.replace(/\D/g, "") || data.data?.id?.split('@')[0]);
+      if (phone && phone.length >= 10) return phone;
     }
   } catch (e: any) {
-    console.warn(`[LID CRITICAL] Connection to WAHA failed during resolve:`, e.message);
+    console.warn(`[LID CRITICAL] All resolve attempts failed:`, e.message);
   }
 
   return null;
@@ -108,61 +112,75 @@ export async function parseWebhook(body: any) {
     }
 
     const payload = body.payload;
-    const isFromMe = payload.fromMe === true;
-    const msgText = (payload.body || '').toLowerCase().trim();
-    const isCommandMsg = ['#pause', '#resume', '#human', '#ai'].includes(msgText);
+    const isGoWa = !!body.device_id; // GoWA includes device_id at root
+    
+    // 🧠 Gateway-agnostic field extraction
+    let isFromMe = isGoWa ? payload.from_me === true : payload.fromMe === true;
+    let messageText = '';
+    let type = "unknown";
+    let hasMedia = false;
+    let fromJid = isGoWa ? payload.from : payload.from;
+    let pushName = payload.pushName || payload.from_name || 'Customer WA';
+
+    if (isGoWa) {
+      // GoWA Payload Handling
+      const msgData = payload.message || {};
+      messageText = msgData.conversation || msgData.extendedTextMessage?.text || msgData.imageMessage?.caption || msgData.videoMessage?.caption || '';
+      hasMedia = !!(msgData.imageMessage || msgData.videoMessage || msgData.documentMessage || msgData.audioMessage || msgData.stickerMessage);
+      type = hasMedia ? "media" : "text";
+    } else {
+      // WAHA Payload Handling
+      messageText = payload.body || '';
+      type = payload.type || "unknown";
+      hasMedia = payload.hasMedia || false;
+      if (['chat', 'text', 'extended_text'].includes(type) && !hasMedia) type = "text";
+      else if (hasMedia) type = "media";
+      pushName = payload.pushName || payload._data?.notifyName || (payload._data?.sender?.pushname) || pushName;
+    }
+
+    const msgTextLower = messageText.toLowerCase().trim();
+    const isCommandMsg = ['#pause', '#resume', '#human', '#ai'].includes(msgTextLower);
 
     if (isFromMe && !isCommandMsg) {
         return { valid: false, reason: "outgoing_message_ignored" };
     }
 
-    const isGroup = (payload.from || '').includes("@g.us");
+    const isGroup = (fromJid || '').includes("@g.us");
 
     // Async extraction with Deep Multi-Source + LID Resolution
     const { phone: user_id, source: source_field } = await extractPhoneDeep(body, payload);
 
     if (!user_id && !isGroup) {
-      return {
-        valid: false,
-        reason: "no_identifier_found"
-      };
+      return { valid: false, reason: "no_identifier_found" };
     }
-
-    // 🧠 Extract message info
-    let messageText = payload.body || '';
-    let type = payload.type || "unknown";
-    const hasMedia = payload.hasMedia || false;
-
-    if (['chat', 'text', 'extended_text'].includes(type) && !hasMedia) {
-      type = "text";
-    } else if (hasMedia || ['image', 'video', 'document', 'audio', 'ptt', 'sticker'].includes(type)) {
-      type = "media";
-    }
-
-    const pushName = payload.pushName || payload._data?.notifyName || (payload._data?.sender?.pushname) || 'Customer WA';
 
     // 🧠 IMPROVED: QUOTE/REPLY SUPPORT
-    // WAHA usually provides quotedMsg in payload
-    const quoted = payload.quotedMsg || payload._data?.quotedMsg;
-    if (quoted && (quoted.body || quoted.caption)) {
-      const quotedBody = quoted.body || quoted.caption || '';
-      const quotedAuthor = quoted.pushName || 'System/Admin';
-      // Prepend the quote context to help the AI understand what is being replied to
-      messageText = `[REPLY TO "${quotedAuthor}": "${quotedBody.substring(0, 100)}${quotedBody.length > 100 ? '...' : ''}"] ${messageText}`;
+    const quoted = isGoWa 
+      ? (payload.message?.extendedTextMessage?.contextInfo?.quotedMessage)
+      : (payload.quotedMsg || payload._data?.quotedMsg);
+
+    if (quoted) {
+      const quotedBody = quoted.conversation || quoted.extendedTextMessage?.text || quoted.caption || quoted.body || '';
+      if (quotedBody) {
+        const quotedAuthor = isGoWa ? 'User' : (quoted.pushName || 'System/Admin');
+        messageText = `[REPLY TO "${quotedAuthor}": "${quotedBody.substring(0, 100)}${quotedBody.length > 100 ? '...' : ''}"] ${messageText}`;
+      }
     }
 
     return {
       valid: true,
-      user_id: user_id || payload.from.split('@')[0], 
-      reply_jid: payload.from,
+      user_id: user_id || (fromJid ? fromJid.split('@')[0] : 'unknown'), 
+      reply_jid: fromJid,
       user_name: pushName,
       message: messageText,
       type,
       hasMedia,
       is_group: !!isGroup,
       source_field,
-      raw_sender: payload.from,
-      message_id: typeof payload.id === 'object' && payload.id !== null ? (payload.id._serialized || payload.id.id) : payload.id // 🆔 Fix Object serialization issue
+      raw_sender: fromJid,
+      gateway: isGoWa ? 'gowa' : 'waha',
+      device_id: body.device_id || body.session || 'default',
+      message_id: isGoWa ? payload.id : (typeof payload.id === 'object' && payload.id !== null ? (payload.id._serialized || payload.id.id) : payload.id)
     };
   } catch (err: any) {
     return {
