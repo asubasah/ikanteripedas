@@ -7,16 +7,25 @@ dotenv.config({ path: '.env.local' });
 const dbUrl = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString: dbUrl });
 
-// Keyword → Kategori otomatis
+// Keyword → Kategori otomatis (Fokus Target Market)
 const KEYWORD_MAP: { keyword: string; kategori: string }[] = [
+  // Kompetitor / Kolaborator
   { keyword: "Jasa Laser Cutting Sidoarjo",       kategori: "Jasa Cutting Laser" },
   { keyword: "Laser Cutting Plat Surabaya",        kategori: "Jasa Cutting Laser" },
-  { keyword: "Jasa Laser Cutting Gresik",          kategori: "Jasa Cutting Laser" },
-  { keyword: "Fabrication Metal Sidoarjo",         kategori: "Bengkel Fabrikasi" },
-  { keyword: "Bengkel Pabrik Sidoarjo",            kategori: "Bengkel Fabrikasi" },
-  { keyword: "Bengkel Fabrikasi Pasuruan",         kategori: "Bengkel Fabrikasi" },
-  { keyword: "Bengkel Bubut Surabaya",             kategori: "Bengkel & Permesinan" },
-  { keyword: "Kontraktor Mekanikal Elektrikal Surabaya", kategori: "Kontraktor" },
+  { keyword: "Jasa Bending CNC Sidoarjo",          kategori: "Jasa Bending" },
+  { keyword: "Shearing Plat Surabaya",             kategori: "Jasa Shearing" },
+  
+  // Target Market Spesifik (Konsumen Jasa Laser)
+  { keyword: "Karoseri Sidoarjo",                  kategori: "Otomotif & Karoseri" },
+  { keyword: "Pabrik Pembuat Karoseri Gresik",     kategori: "Otomotif & Karoseri" },
+  { keyword: "Pabrik Mesin Surabaya",              kategori: "Pabrik Mesin" },
+  { keyword: "Produsen Alat Pertanian Jawa Timur", kategori: "Alat Pertanian" },
+  { keyword: "Workshop Konstruksi Baja Gresik",    kategori: "Konstruksi Baja" },
+  { keyword: "Pembuat Lift Surabaya",              kategori: "Manufaktur Lift" },
+  { keyword: "Manufaktur Logam Sidoarjo",          kategori: "Industri Manufaktur" },
+  { keyword: "Produsen Pintu Besi Pasuruan",       kategori: "Manufaktur Pintu/Pagar" },
+  { keyword: "Kontraktor Mekanikal Elektrikal Surabaya", kategori: "Kontraktor ME" },
+  { keyword: "Pembuat Mesin Industri Surabaya",    kategori: "Pabrik Mesin" },
 ];
 
 // Kabupaten lookup - maps kecamatan to kabupaten
@@ -196,6 +205,24 @@ async function scrapeMaps() {
                     if (/^[1-5][,.]\\d$/.test(t)) { rating = t; break; }
                 }
 
+                // Reviews count
+                let reviews = 0;
+                for (const span of allSpans) {
+                    const t = span.textContent.trim();
+                    const match = t.match(/^\\((\\d[\\d,.]*)\\)$/); // e.g. "(123)" or "(1.234)"
+                    if (match) { 
+                       reviews = parseInt(match[1].replace(/[\\D]/g, ''), 10); 
+                       break; 
+                    }
+                }
+                if (!reviews) {
+                   const reviewBtn = document.querySelector('button[aria-label*="ulasan"], button[aria-label*="review"]');
+                   if (reviewBtn) {
+                      const text = reviewBtn.textContent?.replace(/[\\D]/g, '');
+                      if (text) reviews = parseInt(text, 10);
+                   }
+                }
+
                 // Address and phone from button list
                 let address = null;
                 let phoneText = null;
@@ -226,7 +253,7 @@ async function scrapeMaps() {
                 const links = document.querySelectorAll('a[data-item-id*="authority"], a[aria-label*="website"], a[aria-label*="situs"]');
                 if (links.length > 0) website = links[0].href;
 
-                return { name, rating, address, phoneText, website };
+                return { name, rating, reviews, address, phoneText, website };
             })()`);
 
             if (data.name) {
@@ -254,11 +281,12 @@ async function scrapeMaps() {
 
                 if (check.rows.length === 0) {
                    await pool.query(
-                     `INSERT INTO leads_mk (nama_lead, nomor_wa, status_crm, sumber_lead, alamat_lengkap, website, bintang_google, koordinat_maps, kecamatan, kabupaten, kategori, lead_score, last_chat) 
-                      VALUES ($1, $2, 'Cold', 'Scraper', $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
+                     `INSERT INTO leads_mk (nama_lead, nomor_wa, status_crm, sumber_lead, alamat_lengkap, website, bintang_google, jumlah_review, koordinat_maps, kecamatan, kabupaten, kategori, lead_score, last_chat) 
+                      VALUES ($1, $2, 'Cold', 'Scraper', $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
                      [
                         finalData.name, phone, finalData.address, finalData.website, 
                         finalData.rating ? parseFloat(finalData.rating.replace(',','.')) : null,
+                        data.reviews || 0,
                         finalData.koordinat, finalData.kecamatan, finalData.kabupaten, finalData.kategori, finalData.score
                      ]
                    );

@@ -79,7 +79,7 @@ export async function GET(request: Request) {
     );
 
     const leadsQuery = await query(
-      `SELECT id, nama_lead, nomor_wa, alamat_lengkap, website, bintang_google, koordinat_maps, kecamatan, kabupaten, kategori, lead_score, status_crm, last_marketing_at
+      `SELECT id, nama_lead, nomor_wa, alamat_lengkap, website, bintang_google, jumlah_review, koordinat_maps, kecamatan, kabupaten, kategori, lead_score, status_crm, last_marketing_at
        FROM leads_mk ${where} ORDER BY lead_score DESC NULLS LAST LIMIT 200`,
       params
     );

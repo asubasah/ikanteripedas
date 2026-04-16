@@ -3,7 +3,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
-const KATEGORI_LIST = ['Umum', 'Bengkel Fabrikasi', 'Kontraktor', 'Industri Manufaktur', 'Konstruksi', 'Otomotif', 'Lain-lain'];
+const KATEGORI_LIST = [
+  'Jasa Cutting Laser', 'Jasa Bending', 'Jasa Shearing', 'Bengkel Fabrikasi', 
+  'Otomotif & Karoseri', 'Pabrik Mesin', 'Alat Pertanian', 'Konstruksi Baja', 
+  'Manufaktur Lift', 'Industri Manufaktur', 'Manufaktur Pintu/Pagar', 
+  'Kontraktor ME', 'Bengkel & Permesinan', 'Kontraktor', 'Lain-lain', 'Umum'
+];
 const STATUS_LIST = ['Cold', 'Interested', 'Qualified', 'Converted', 'DNC'];
 const KABUPATEN_FOCUS = ['Semua', 'Kab. Sidoarjo', 'Kota Surabaya', 'Kab. Gresik', 'Kab. Pasuruan', 'Unknown'];
 const KECAMATAN_SIDOARJO = ['Waru','Gedangan','Sedati','Buduran','Sidoarjo','Candi','Tanggulangin','Porong','Krembung','Tulangan','Wonoayu','Krian','Taman','Sukodono','Tarik','Prambon','Jabon','Balong Bendo'];
@@ -32,6 +37,7 @@ type Lead = {
   kecamatan: string | null;
   kabupaten: string | null;
   kategori: string | null;
+  jumlah_review: number | null;
   lead_score: number;
   status_crm: string;
   last_marketing_at: string | null;
@@ -47,6 +53,7 @@ export default function CRMDashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<number | null>(null);
   const [editRow, setEditRow] = useState<EditState | null>(null);
+  const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [filters, setFilters] = useState({ kabupaten: 'Semua', kecamatan: 'Semua', kategori: 'Semua', status: 'Semua' });
 
   const fetchData = useCallback(async () => {
@@ -191,8 +198,11 @@ export default function CRMDashboard() {
                       
                       {/* Nama */}
                       <td style={{ padding: '12px 16px', maxWidth: 220 }}>
-                        <p style={{ margin: 0, fontWeight: 700, color: '#F1F5F9', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lead.nama_lead}</p>
-                        {lead.bintang_google && <span style={{ color: '#F59E0B', fontSize: 10 }}>★ {lead.bintang_google}</span>}
+                        <p onClick={() => setDetailLead(lead)} style={{ margin: 0, fontWeight: 700, color: '#60A5FA', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', textDecoration: 'underline' }}>{lead.nama_lead}</p>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                           {lead.bintang_google && <span style={{ color: '#F59E0B', fontSize: 10 }}>★ {lead.bintang_google}</span>}
+                           {lead.jumlah_review ? <span style={{ color: '#94A3B8', fontSize: 10 }}>({lead.jumlah_review} ulasan)</span> : null}
+                        </div>
                       </td>
 
                       {/* Kategori */}
@@ -300,6 +310,59 @@ export default function CRMDashboard() {
           )}
         </div>
       </main>
+
+      {/* Modal Detail */}
+      {detailLead && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#12151D', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: 600, maxWidth: '90%', padding: 32, position: 'relative', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+            <button onClick={() => setDetailLead(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'transparent', border: 'none', color: '#94A3B8', fontSize: 24, cursor: 'pointer' }}>×</button>
+            <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 800, color: '#F1F5F9' }}>{detailLead.nama_lead}</h2>
+            <p style={{ margin: '0 0 24px', fontSize: 13, color: '#60A5FA', fontWeight: 600 }}>{detailLead.kategori || 'Kategori Umum'}</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12 }}>
+                <span style={{ fontSize: 10, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Alamat Lengkap</span>
+                <p style={{ margin: '4px 0 0', fontSize: 14, color: '#E2E8F0', lineHeight: 1.5 }}>
+                  {detailLead.alamat_lengkap || 'Tidak ada data alamat'}
+                  <br />
+                  <span style={{ color: '#F59E0B', fontWeight: 600 }}>{detailLead.kecamatan || 'Unknown'}, {detailLead.kabupaten || 'Unknown'}</span>
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12 }}>
+                  <span style={{ fontSize: 10, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Kontak Utama</span>
+                  <div style={{ margin: '4px 0 0', fontSize: 14 }}>
+                    {detailLead.nomor_wa ? <a href={`https://wa.me/${detailLead.nomor_wa.replace(/\\D/g,'')}`} target="_blank" style={{ color: '#34D399', textDecoration: 'none', fontWeight: 700 }}>WhatsApp: {detailLead.nomor_wa}</a> : <span style={{ color: '#94A3B8' }}>Tidak ada nomor</span>}
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12 }}>
+                  <span style={{ fontSize: 10, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Website & Maps</span>
+                  <div style={{ margin: '4px 0 0', fontSize: 14, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {detailLead.website ? <a href={detailLead.website} target="_blank" style={{ color: '#60A5FA', textDecoration: 'none' }}>Kunjungi Website ↗</a> : <span style={{ color: '#94A3B8' }}>Tidak ada website</span>}
+                    {detailLead.koordinat_maps ? <a href={`https://www.google.com/maps?q=${detailLead.koordinat_maps}`} target="_blank" style={{ color: '#F87171', textDecoration: 'none' }}>Buka di Maps 📍</a> : null}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <span style={{ fontSize: 10, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Kualitas / Google Rating</span>
+                  <p style={{ margin: '4px 0 0', fontSize: 14, color: '#E2E8F0' }}>
+                    <span style={{ color: '#F59E0B', fontWeight: 700 }}>{detailLead.bintang_google ? `★ ${detailLead.bintang_google}` : 'Tanpa Bintang'}</span> 
+                    <span style={{ color: '#94A3B8', marginLeft: 8 }}>({detailLead.jumlah_review || 0} reviews)</span>
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: 10, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Lead Score</span>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: scoreColor(detailLead.lead_score) }}>{detailLead.lead_score} Pts</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
