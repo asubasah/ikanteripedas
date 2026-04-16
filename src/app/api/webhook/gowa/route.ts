@@ -75,6 +75,7 @@ export async function POST(req: Request) {
     
     let dynamicContactGowa = dynamicSalesContact.replace(/\D/g, "");
     if (dynamicContactGowa.startsWith('0')) dynamicContactGowa = '62' + dynamicContactGowa.substring(1);
+    const dynamicContactGowaJid = dynamicContactGowa + '@s.whatsapp.net';
 
     const body = await req.json();
     console.log('[GOWA] Webhook Payload:', JSON.stringify(body, null, 2));
@@ -117,9 +118,17 @@ export async function POST(req: Request) {
     } = parsed as any;
     const cleanPhone = customerNumber;
     const sessionId = `gowa-${cleanPhone}`;
-    const targetPhone = targetJid?.split('@')[0] || cleanPhone;
+    
+    // Standardize target phone to international format (62...) and append @s.whatsapp.net
+    let targetPhone = targetJid?.split('@')[0] || cleanPhone;
+    if (targetPhone.startsWith('08')) {
+        targetPhone = '62' + targetPhone.substring(1);
+    }
+    if (!targetPhone.includes('@')) {
+        targetPhone = targetPhone + '@s.whatsapp.net';
+    }
 
-    console.log(`[GOWA FIRE]: phone=${cleanPhone}, text=${text}, type=${parsedType}, device=${device_id}`);
+    console.log(`[GOWA FIRE]: phone=${cleanPhone}, target=${targetPhone}, text=${text}, type=${parsedType}`);
 
     // DB Sync
     let leadResult = await query(
@@ -169,7 +178,7 @@ export async function POST(req: Request) {
             await fetch(`${GOWA_URL}/send/message`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-Device-Id': device_id },
-              body: JSON.stringify({ phone: dynamicContactGowa, message: `*File Masuk (MKM GoWA)*\nDari: ${userName}\nNo: ${cleanPhone}\nCek dashboard untuk detail.` })
+              body: JSON.stringify({ phone: dynamicContactGowaJid, message: `*File Masuk (MKM GoWA)*\nDari: ${userName}\nNo: ${cleanPhone}\nCek dashboard untuk detail.` })
             });
 
             pendingMediaReplies.delete(leadId);
@@ -236,6 +245,8 @@ ATURAN:
           fullPrompt = getCombinedSystemPrompt(getCoreSystemPrompt(dynamicSalesContact, userName, timeContext), dynamicAiPrompt, getLanguageLogicPrompt());
         }
 
+        console.log(`[GOWA AI] Sending to OpenRouter. Model: ${dynamicAiModel}. Context: ${conversationHistory.length} messages.`);
+        const openRouterStartTime = Date.now();
         const openRouterRes = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
           method: 'POST',
           headers: {
@@ -248,6 +259,8 @@ ATURAN:
             user: sessionId, temperature: 0.7
           })
         });
+
+        console.log(`[GOWA AI] OpenRouter returned status: ${openRouterRes.status} in ${Date.now() - openRouterStartTime}ms`);
 
         if (openRouterRes.ok) {
           const aiData = await openRouterRes.json();
@@ -272,35 +285,34 @@ ATURAN:
                 headers['Authorization'] = `Basic ${Buffer.from(process.env.GOWA_BASIC_AUTH).toString('base64')}`;
             }
 
-            // Using GOWA device id for replies to maintain consistency based on incoming device
-            const sendAiRes = await fetch(`${GOWA_URL}/send/message`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify({
-                phone: targetPhone,
-                message: replyText
-              })
-            });
+            // Using unified sender for consistency and reliability
+            const sendAiRes = await sendWhatsAppText(targetPhone, replyText);
 
-            if (sendAiRes.ok) {
+            if (sendAiRes.success) {
               await query(`INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`, [leadId, replyText, sessionId]);
               
               if (replyText.toLowerCase().includes(dynamicSalesContact) || replyText.toLowerCase().includes('luluk')) {
                 await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
                 
-                const handoffHeaders: Record<string, string> = { 'Content-Type': 'application/json', 'X-Device-Id': MKM_DEVICE_ID };
-                if (process.env.GOWA_BASIC_AUTH) {
-                   handoffHeaders['Authorization'] = `Basic ${Buffer.from(process.env.GOWA_BASIC_AUTH).toString('base64')}`;
-                }
-
-                await fetch(`${GOWA_URL}/send/message`, {
-                  method: 'POST',
-                  headers: handoffHeaders,
-                  body: JSON.stringify({ phone: dynamicContactGowa, message: `*Lead Handoff Marketing (GoWA)*: Customer *${userName}* diteruskan ke Sales (${targetPhone}).` })
-                });
+                await sendWhatsAppText(dynamicContactGowa, `*Lead Handoff Marketing (GoWA)*: Customer *${userName}* diteruskan ke Sales (${targetPhone}).`);
               }
+            } else {
+              console.error("[GOWA AI ERROR] Failed to send reply via GoWA/WAHA:", sendAiRes.error);
             }
           }, 4000);
+        } else {
+          const errorText = await openRouterRes.text();
+          console.error("[GOWA AI ERROR] OpenRouter failed:", openRouterRes.status, errorText);
+          
+          // Fallback response for stability
+          const fallbackText = "Terima kasih sudah menghubungi MK Metalindo. Mohon maaf, sistem kami sedang mengalami kendala teknis singkat. Tim sales kami akan segera membalas chat ini secara manual. 🙏";
+          
+          setTimeout(async () => {
+            const sendFallbackRes = await sendWhatsAppText(targetPhone, fallbackText);
+            if (sendFallbackRes.success) {
+              await query(`INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`, [leadId, fallbackText, sessionId]);
+            }
+          }, 2000);
         }
       } catch (e) {
         console.error("[GOWA AI ERROR]", e);

@@ -47,7 +47,8 @@ export async function sendWhatsAppText(to: string, text: string) {
         console.log(`[waSender] GoWA success: ${formattedNumber}`);
         return { success: true, gateway: 'gowa' };
       }
-      console.error(`[waSender] GoWA failed: ${res.statusText}`);
+      const errorText = await res.text();
+      console.error(`[waSender] GoWA failed (${res.status}): ${errorText}`);
     } catch (err: any) {
       console.error(`[waSender] GoWA error:`, err.message);
     }
