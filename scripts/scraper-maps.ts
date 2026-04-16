@@ -156,8 +156,8 @@ async function scrapeMaps() {
                 };
             })()`);
 
-            if (data.name && data.phoneText) {
-                const phone = cleanPhone(data.phoneText);
+            if (data.name) {
+                const phone = data.phoneText ? cleanPhone(data.phoneText) : null;
                 const kecamatan = data.address ? extractKecamatan(data.address) : 'Unknown';
                 
                 const finalData = {
@@ -168,35 +168,31 @@ async function scrapeMaps() {
                    score: calculateScore({ phone, rating: data.rating, website: data.website })
                 };
 
+                // Check for duplication: if has phone, check phone; if not, check name
+                let check;
                 if (phone) {
-                   const check = await pool.query('SELECT id FROM leads_mk WHERE nomor_wa = $1', [phone]);
-                   if (check.rows.length === 0) {
-                      await pool.query(
-                        `INSERT INTO leads_mk (nama_lead, nomor_wa, status_crm, sumber_lead, alamat_lengkap, website, bintang_google, koordinat_maps, kecamatan, lead_score, last_chat) 
-                         VALUES ($1, $2, 'Cold', 'Scraper', $3, $4, $5, $6, $7, $8, NOW())`,
-                        [
-                           finalData.name, phone, finalData.address, finalData.website, 
-                           finalData.rating ? parseFloat(finalData.rating.replace(',','.')) : null,
-                           finalData.koordinat, finalData.kecamatan, finalData.score
-                        ]
-                      );
-                      console.log(`✅ [${finalData.score} Pts] ${finalData.name} - Kec. ${finalData.kecamatan}`);
-                      totalScraped++;
-                   } else {
-                      // Optionally update existing lead to enrich data
-                      await pool.query(
-                         `UPDATE leads_mk SET alamat_lengkap = $1, website = $2, bintang_google = $3, koordinat_maps = $4, kecamatan = $5, lead_score = $6 WHERE nomor_wa = $7 AND alamat_lengkap IS NULL`,
-                         [
-                           finalData.address, finalData.website, 
-                           finalData.rating ? parseFloat(finalData.rating.replace(',','.')) : null,
-                           finalData.koordinat, finalData.kecamatan, finalData.score, phone
-                         ]
-                      );
-                      console.log(`♻️  [UPDATE] ${finalData.name} (Data diperkaya)`);
-                   }
+                   check = await pool.query('SELECT id FROM leads_mk WHERE nomor_wa = $1', [phone]);
+                } else {
+                   check = await pool.query('SELECT id FROM leads_mk WHERE nama_lead = $1 AND alamat_lengkap = $2', [data.name, data.address]);
+                }
+
+                if (check.rows.length === 0) {
+                   await pool.query(
+                     `INSERT INTO leads_mk (nama_lead, nomor_wa, status_crm, sumber_lead, alamat_lengkap, website, bintang_google, koordinat_maps, kecamatan, lead_score, last_chat) 
+                      VALUES ($1, $2, 'Cold', 'Scraper', $3, $4, $5, $6, $7, $8, NOW())`,
+                     [
+                        finalData.name, phone, finalData.address, finalData.website, 
+                        finalData.rating ? parseFloat(finalData.rating.replace(',','.')) : null,
+                        finalData.koordinat, finalData.kecamatan, finalData.score
+                     ]
+                   );
+                   console.log(`✅ [${finalData.score} Pts] ${finalData.name} ${phone ? '(' + phone + ')' : '(Tanpa HP)'}`);
+                   totalScraped++;
+                } else {
+                   console.log(`♻️  [SKIP] ${finalData.name} (Sudah ada di database)`);
                 }
             } else {
-                console.log(`⏭️ [SKIP] Data tidak valid (Tanpa Nomor HP)`);
+                console.log(`⏭️ [SKIP] Nama tidak ditemukan`);
             }
         } catch (e: any) {
             console.warn(`❌ Gagal memproses link (${link.substring(0, 40)}...): ${e.message}`);
