@@ -76,6 +76,13 @@ function extractKecamatan(address: string): string | null {
   return null;
 }
 
+function cleanPhone(raw: string): string | null {
+  let cleaned = raw.replace(/\D/g, '');
+  if (cleaned.startsWith('62')) cleaned = '0' + cleaned.substring(2);
+  if (cleaned.startsWith('8')) cleaned = '0' + cleaned;
+  return cleaned.length >= 10 ? cleaned : null;
+}
+
 function calculateScore(data: any) {
   let score = 0;
   if (data.phone) score += 30;
