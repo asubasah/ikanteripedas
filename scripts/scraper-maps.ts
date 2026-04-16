@@ -4,12 +4,16 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 // Koneksi Database
-const dbUrl = process.env.DATABASE_URL || 'postgresql://mkm:mkm2026@103.174.114.249:5433/mkm_crm';
+const dbUrl = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString: dbUrl });
 
 const KEYWORDS = [
-  "Bengkel Pabrik Surabaya",
-  "Jasa Fabrikasi Metal Sidoarjo"
+  "Jasa Laser Cutting Sidoarjo",
+  "Laser Cutting Plat Surabaya",
+  "Fabrication Metal Sidoarjo",
+  "Bengkel Pabrik Sidoarjo",
+  "Bengkel Bubut Surabaya",
+  "Kontraktor Mekanikal Elektrikal Surabaya"
 ];
 
 function cleanPhone(raw: string) {
@@ -75,9 +79,9 @@ async function scrapeMaps() {
   console.log('[PERINGATAN] Proses ini lebih lambat karena membuka setiap profil untuk mengambil Alamat, Web, dan Bintang.');
 
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     defaultViewport: null,
-    args: ['--start-maximized']
+    args: ['--start-maximized', '--no-sandbox', '--disable-setuid-sandbox']
   });
 
   let totalScraped = 0;
@@ -101,10 +105,10 @@ async function scrapeMaps() {
       console.log(`📌 Menemukan ${uniqueLinks.length} prospek. Memulai Deep-Scraping...`);
 
       for (let i = 0; i < uniqueLinks.length; i++) {
-        const link = uniqueLinks[i];
+        const link = uniqueLinks[i] as string;
         try {
             await page.goto(link, { waitUntil: 'load', timeout: 30000 });
-            await page.waitForTimeout(3000); // Wait for the left panel to fully populate
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for the left panel to fully populate
             
             // Extract Coordinate from URL
             // Format: .../data=!...@latitude,longitude,zoom...
