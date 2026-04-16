@@ -59,7 +59,9 @@ export default function CRMDashboard() {
   // Scraper & Export States
   const [scraperStatus, setScraperStatus] = useState({ isRunning: false, logs: '' });
   const [scraperModal, setScraperModal] = useState(false);
-  const [customKwText, setCustomKwText] = useState("[\n  {\"keyword\": \"Karoseri Surabaya\", \"kategori\": \"Otomotif & Karoseri\"}\n]");
+  const [scrapeKeyword, setScrapeKeyword] = useState('Karoseri Sidoarjo');
+  const [scrapeKategori, setScrapeKategori] = useState('Otomotif & Karoseri');
+  const [newKategori, setNewKategori] = useState('');
 
   // Auth States
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -155,8 +157,11 @@ export default function CRMDashboard() {
     try {
       let kw = undefined;
       if (action === 'start') {
-        try { kw = JSON.parse(customKwText); } 
-        catch(e) { alert('Format keyword JSON salah!'); return; }
+        const finalKat = scrapeKategori === 'TAMBAH_BARU' ? newKategori : scrapeKategori;
+        if (!scrapeKeyword.trim() || !finalKat.trim()) {
+           alert('Keyword dan Kategori tidak boleh kosong!'); return;
+        }
+        kw = [{ keyword: scrapeKeyword, kategori: finalKat }];
       }
       
       const res = await fetch('/api/debug/leads/scraper', {
@@ -537,13 +542,27 @@ export default function CRMDashboard() {
             <p style={{ margin: '0 0 24px', fontSize: 13, color: '#94A3B8' }}>Jalankan pencarian otomatis ke Google Maps. Anda bisa menambahkan atau mengganti keyword dan kategori target secara custom di bawah ini.</p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 700, color: '#E2E8F0' }}>Target Keywords (Format JSON)</label>
-                <textarea 
-                  value={customKwText} 
-                  onChange={e => setCustomKwText(e.target.value)}
-                  style={{ width: '100%', height: 120, background: '#0D0F14', border: '1px solid rgba(255,255,255,0.1)', color: '#34D399', borderRadius: 8, padding: 12, fontSize: 12, fontFamily: 'monospace', outline: 'none', resize: 'vertical' }}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700, color: '#E2E8F0' }}>Kata Kunci Pencarian (Maps)</label>
+                  <input type="text" value={scrapeKeyword} onChange={e => setScrapeKeyword(e.target.value)} placeholder="Contoh: Pabrik Mesin Sidoarjo"
+                    style={{ width: '100%', padding: '10px 12px', background: '#0D0F14', border: '1px solid rgba(255,255,255,0.1)', color: '#F1F5F9', borderRadius: 8, fontSize: 13, outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700, color: '#E2E8F0' }}>Masukkan ke Kategori Sistem</label>
+                  <select value={scrapeKategori} onChange={e => { setScrapeKategori(e.target.value); if (e.target.value !== 'TAMBAH_BARU') setNewKategori(''); }}
+                    style={{ width: '100%', padding: '10px 12px', background: '#0D0F14', border: '1px solid rgba(255,255,255,0.1)', color: '#F1F5F9', borderRadius: 8, fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+                    {KATEGORI_LIST.map(k => <option key={k} value={k}>{k}</option>)}
+                    <option value="TAMBAH_BARU">➕ Tambah Kategori Baru...</option>
+                  </select>
+                </div>
+                {scrapeKategori === 'TAMBAH_BARU' && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700, color: '#E2E8F0' }}>Nama Kategori Database Baru</label>
+                    <input type="text" value={newKategori} onChange={e => setNewKategori(e.target.value)} placeholder="Ketik nama kategori baru" autoFocus
+                      style={{ width: '100%', padding: '10px 12px', background: 'rgba(52, 211, 153, 0.1)', border: '1px solid #34D399', color: '#34D399', borderRadius: 8, fontSize: 13, outline: 'none' }} />
+                  </div>
+                )}
               </div>
 
               {scraperStatus.isRunning ? (
