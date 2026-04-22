@@ -3,10 +3,10 @@
  * Supports GoWA (primary) and WAHA (fallback)
  */
 
-export async function sendWhatsAppText(to: string, text: string) {
+export async function sendWhatsAppText(to: string, text: string, deviceId?: string) {
   const GOWA_URL = process.env.GOWA_URL;
   const GOWA_BASIC_AUTH = process.env.GOWA_BASIC_AUTH;
-  const GOWA_DEVICE_ID = process.env.GOWA_DEVICE_ID || 'default';
+  const GOWA_DEVICE_ID = deviceId || process.env.GOWA_DEVICE_ID || 'default';
   
   const WAHA_URL = process.env.WAHA_URL;
   const WAHA_API_KEY = process.env.WAHA_API_KEY;

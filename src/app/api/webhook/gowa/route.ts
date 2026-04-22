@@ -82,21 +82,12 @@ export async function POST(req: Request) {
 
     const parsed = await parseWebhook(body);
 
-    const MKM_DEVICE_ID = process.env.GOWA_DEVICE_ID || 'd1b23cd1-d667-442d-9271-89ea2f7d54aa';
-    const MKM_MARKETING_DEVICE_ID = 'd2b23cd1-d667-442d-9271-89ea2f7d54aa';
-    const MKM_PHONE_FILTER = '628113195800';
     const incomingDeviceId = body.device_id || '';
     const incomingPhone = incomingDeviceId.split('@')[0];
-    const isMarketingDevice = incomingDeviceId === MKM_MARKETING_DEVICE_ID;
+    const envMarketingId = process.env.GOWA_MARKETING_DEVICE_ID || 'd2b23cd1-d667-442d-9271-89ea2f7d54aa';
+    const isMarketingDevice = (incomingDeviceId === envMarketingId || incomingPhone === envMarketingId.split('@')[0]);
 
-    // 🚨 SAFETY FILTER: Only process if message is for MKM number OR matches known UUID
-    const isMkmDevice = (incomingPhone === MKM_PHONE_FILTER) || (incomingDeviceId === MKM_DEVICE_ID) || isMarketingDevice;
-
-    if (!isMkmDevice) {
-      console.log(`[GOWA IGNORE]: Message for other device ${incomingDeviceId}. Expected ${MKM_PHONE_FILTER}, ${MKM_DEVICE_ID}, or ${MKM_MARKETING_DEVICE_ID}`);
-      return NextResponse.json({ success: true, ignored: true, reason: "mismatched_device_id" });
-    }
-
+    console.log(`[GOWA ACCEPT]: Processing message via device ${incomingDeviceId}`);
     if (!parsed.valid) {
       console.log("[GOWA SKIP]:", parsed.reason);
       return NextResponse.json({ success: true, ignored: true, reason: parsed.reason });
@@ -199,7 +190,7 @@ export async function POST(req: Request) {
       const matchedFaq = faqData.find((f: any) => f.keywords.some((k: any) => new RegExp(`\\b${k}\\b`, 'i').test(lowerMessage)));
       if (matchedFaq) {
         setTimeout(async () => {
-          await sendWhatsAppText(targetPhone, matchedFaq.response);
+          await sendWhatsAppText(targetPhone, matchedFaq.response, incomingDeviceId);
           await query(`INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`, [leadId, matchedFaq.response, sessionId]);
         }, 5000);
         return NextResponse.json({ success: true, action: 'faq_queued' });
@@ -286,7 +277,7 @@ ATURAN:
             }
 
             // Using unified sender for consistency and reliability
-            const sendAiRes = await sendWhatsAppText(targetPhone, replyText);
+            const sendAiRes = await sendWhatsAppText(targetPhone, replyText, incomingDeviceId);
 
             if (sendAiRes.success) {
               await query(`INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`, [leadId, replyText, sessionId]);
@@ -294,7 +285,7 @@ ATURAN:
               if (replyText.toLowerCase().includes(dynamicSalesContact) || replyText.toLowerCase().includes('luluk')) {
                 await query(`UPDATE leads_mk SET status_crm = 'Interested' WHERE id = $1`, [leadId]);
                 
-                await sendWhatsAppText(dynamicContactGowa, `*Lead Handoff Marketing (GoWA)*: Customer *${userName}* diteruskan ke Sales (${targetPhone}).`);
+                await sendWhatsAppText(dynamicContactGowa, `*Lead Handoff Marketing (GoWA)*: Customer *${userName}* diteruskan ke Sales (${targetPhone}).`, incomingDeviceId);
               }
             } else {
               console.error("[GOWA AI ERROR] Failed to send reply via GoWA/WAHA:", sendAiRes.error);
@@ -308,7 +299,7 @@ ATURAN:
           const fallbackText = "Terima kasih sudah menghubungi MK Metalindo. Mohon maaf, sistem kami sedang mengalami kendala teknis singkat. Tim sales kami akan segera membalas chat ini secara manual. 🙏";
           
           setTimeout(async () => {
-            const sendFallbackRes = await sendWhatsAppText(targetPhone, fallbackText);
+            const sendFallbackRes = await sendWhatsAppText(targetPhone, fallbackText, incomingDeviceId);
             if (sendFallbackRes.success) {
               await query(`INSERT INTO chat_history (lead_id, sender_name, message_text, direction, is_ai_response, session_id) VALUES ($1, 'MK Metalindo', $2, 'outgoing', true, $3)`, [leadId, fallbackText, sessionId]);
             }
